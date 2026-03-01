@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Chelo</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  :root {
+    --bg: #0f0f13;
+    --surface: #1a1a22;
+    --surface2: #22222e;
+    --border: #2e2e3e;
+    --text: #f0f0f5;
+    --muted: #7a7a94;
+    --accent: #7c6af7;
+    --accent2: #5eead4;
+    --danger: #f87171;
+    --warning: #fbbf24;
+    --success: #4ade80;
+    --bien: #4ade80;
+    --regular: #fbbf24;
+    --mal: #f87171;
+  }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; overflow: hidden; }
+  #root { height: 100%; display: flex; flex-direction: column; }
+
+  /* Scrollable content */
+  .scroll-area { flex: 1; overflow-y: auto; padding-bottom: 90px; -webkit-overflow-scrolling: touch; }
+  .scroll-area::-webkit-scrollbar { display: none; }
+
+  /* Top bar */
+  .topbar { padding: 16px 20px 12px; display: flex; align-items: center; justify-content: space-between; background: var(--bg); position: sticky; top: 0; z-index: 10; border-bottom: 1px solid var(--border); }
+  .topbar-title { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--text); }
+  .topbar-sub { font-size: 12px; color: var(--muted); margin-top: 1px; }
+  .avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; color: white; cursor: pointer; }
+
+  /* Bottom nav */
+  .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface); border-top: 1px solid var(--border); display: flex; padding: 8px 0 env(safe-area-inset-bottom, 8px); z-index: 20; }
+  .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 0; cursor: pointer; transition: color 0.2s; color: var(--muted); border: none; background: none; font-family: 'DM Sans', sans-serif; }
+  .nav-item.active { color: var(--accent); }
+  .nav-item svg { width: 22px; height: 22px; }
+  .nav-item span { font-size: 10px; font-weight: 500; }
+
+  /* Cards */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px; margin: 0 16px 12px; }
+  .card-title { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
+
+  /* Estado general */
+  .estado-btns { display: flex; gap: 8px; }
+  .estado-btn { flex: 1; padding: 10px 6px; border-radius: 12px; border: 2px solid var(--border); background: transparent; color: var(--muted); font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .estado-btn.selected-bien { border-color: var(--bien); background: rgba(74,222,128,0.12); color: var(--bien); }
+  .estado-btn.selected-regular { border-color: var(--regular); background: rgba(251,191,36,0.12); color: var(--regular); }
+  .estado-btn.selected-mal { border-color: var(--mal); background: rgba(248,113,113,0.12); color: var(--mal); }
+  .estado-btn span { font-size: 20px; }
+
+  /* Medicamentos */
+  .med-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .med-row:last-child { border-bottom: none; }
+  .med-name { font-size: 14px; color: var(--text); }
+  .med-momento { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .toggle { width: 48px; height: 28px; border-radius: 14px; background: var(--border); border: none; cursor: pointer; position: relative; transition: background 0.2s; flex-shrink: 0; }
+  .toggle.on { background: var(--success); }
+  .toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: white; transition: transform 0.2s; }
+  .toggle.on::after { transform: translateX(20px); }
+
+  /* Comidas */
+  .comida-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .comida-item { background: var(--surface2); border-radius: 12px; padding: 10px 12px; }
+  .comida-label { font-size: 10px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+  .comida-input { width: 100%; background: transparent; border: none; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 13px; outline: none; resize: none; }
+  .comida-input::placeholder { color: var(--border); }
+
+  /* Cama checkbox */
+  .cama-row { display: flex; align-items: center; justify-content: space-between; }
+  .cama-label { font-size: 14px; color: var(--text); }
+  .cama-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  /* Notas */
+  .notas-input { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 12px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none; resize: none; min-height: 80px; }
+  .notas-input::placeholder { color: var(--muted); }
+  .notas-input:focus { border-color: var(--accent); }
+
+  /* Save button */
+  .save-btn { margin: 0 16px 12px; width: calc(100% - 32px); padding: 16px; border-radius: 14px; background: var(--accent); border: none; color: white; font-family: 'DM Sans', sans-serif; font-size: 16px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; }
+  .save-btn:active { opacity: 0.8; }
+  .save-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* Login */
+  .login-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 24px; gap: 24px; }
+  .login-logo { font-family: 'DM Serif Display', serif; font-size: 48px; color: var(--text); }
+  .login-sub { font-size: 14px; color: var(--muted); text-align: center; margin-top: -16px; }
+  .login-form { width: 100%; display: flex; flex-direction: column; gap: 12px; }
+  .input-field { width: 100%; padding: 14px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 16px; outline: none; transition: border-color 0.2s; }
+  .input-field:focus { border-color: var(--accent); }
+  .input-field::placeholder { color: var(--muted); }
+  .login-btn { width: 100%; padding: 16px; background: var(--accent); border: none; border-radius: 14px; color: white; font-family: 'DM Sans', sans-serif; font-size: 16px; font-weight: 600; cursor: pointer; }
+  .login-error { font-size: 13px; color: var(--danger); text-align: center; }
+
+  /* Historial */
+  .hist-day { margin: 0 16px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+  .hist-header { padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
+  .hist-fecha { font-size: 15px; font-weight: 500; }
+  .hist-estado { width: 10px; height: 10px; border-radius: 50%; }
+  .hist-body { padding: 0 16px 14px; border-top: 1px solid var(--border); }
+  .hist-row { display: flex; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .hist-row:last-child { border-bottom: none; }
+  .hist-key { color: var(--muted); min-width: 80px; }
+  .hist-val { color: var(--text); flex: 1; }
+
+  /* Médico */
+  .doctor-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px; margin: 0 16px 12px; }
+  .doctor-name { font-size: 16px; font-weight: 600; }
+  .doctor-esp { font-size: 13px; color: var(--accent2); margin-top: 2px; }
+  .doctor-tel { font-size: 13px; color: var(--muted); margin-top: 8px; display: flex; align-items: center; gap: 6px; }
+  .cita-card { background: var(--surface2); border-radius: 12px; padding: 12px; margin-top: 8px; }
+  .cita-fecha { font-size: 12px; color: var(--accent); font-weight: 600; }
+  .cita-motivo { font-size: 13px; color: var(--text); margin-top: 4px; }
+
+  /* Gastos */
+  .gasto-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .gasto-row:last-child { border-bottom: none; }
+  .gasto-cat { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+  .gasto-desc { font-size: 14px; color: var(--text); margin-top: 2px; }
+  .gasto-amount { font-size: 16px; font-weight: 600; color: var(--text); }
+  .gasto-date { font-size: 11px; color: var(--muted); margin-top: 2px; text-align: right; }
+  .resumen-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .resumen-item { background: var(--surface2); border-radius: 12px; padding: 12px; }
+  .resumen-label { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; }
+  .resumen-val { font-size: 22px; font-weight: 600; color: var(--text); margin-top: 4px; }
+
+  /* Documentos */
+  .doc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 16px; }
+  .doc-item { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; cursor: pointer; }
+  .doc-img { width: 100%; aspect-ratio: 3/4; object-fit: cover; background: var(--surface2); display: flex; align-items: center; justify-content: center; }
+  .doc-info { padding: 10px; }
+  .doc-name { font-size: 12px; font-weight: 500; }
+  .doc-date { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  /* FAB */
+  .fab { position: fixed; bottom: 80px; right: 20px; width: 52px; height: 52px; border-radius: 50%; background: var(--accent); border: none; color: white; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 20px rgba(124,106,247,0.4); z-index: 15; }
+
+  /* Modal */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 30; display: flex; align-items: flex-end; }
+  .modal { background: var(--surface); border-radius: 24px 24px 0 0; padding: 24px 20px; width: 100%; max-height: 85vh; overflow-y: auto; }
+  .modal-title { font-size: 18px; font-weight: 600; margin-bottom: 20px; }
+  .modal-field { margin-bottom: 14px; }
+  .modal-label { font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+  .select-field { width: 100%; padding: 14px 16px; background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none; appearance: none; }
+  .modal-btns { display: flex; gap: 10px; margin-top: 20px; }
+  .btn-cancel { flex: 1; padding: 14px; border-radius: 12px; border: 1px solid var(--border); background: transparent; color: var(--muted); font-family: 'DM Sans', sans-serif; font-size: 15px; cursor: pointer; }
+  .btn-save { flex: 2; padding: 14px; border-radius: 12px; border: none; background: var(--accent); color: white; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 600; cursor: pointer; }
+
+  /* Toast */
+  .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 12px 20px; font-size: 14px; font-weight: 500; z-index: 50; animation: fadeInOut 2.5s forwards; white-space: nowrap; }
+  @keyframes fadeInOut { 0%{opacity:0;transform:translateX(-50%) translateY(-10px)} 15%{opacity:1;transform:translateX(-50%) translateY(0)} 75%{opacity:1} 100%{opacity:0} }
+
+  .empty { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 14px; }
+  .section-header { padding: 16px 20px 8px; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+  .badge { display: inline-block; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+  .badge-bien { background: rgba(74,222,128,0.15); color: var(--bien); }
+  .badge-regular { background: rgba(251,191,36,0.15); color: var(--regular); }
+  .badge-mal { background: rgba(248,113,113,0.15); color: var(--mal); }
+
+  input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useCallback } = React;
+
+const SUPABASE_URL = 'https://teyihnnrsuhdbhrknfza.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRleWlobm5yc3VoZGJocmtuZnphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzMjUzMjUsImV4cCI6MjA4NzkwMTMyNX0.VBPQYuwSaWgURyzHwpsrpVdjX9gwq8xfCJOl1-EkGFI';
+const supabase = supabase_js.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const CATS = { comida:'🍔 Comida', transporte:'🚗 Transporte', farmacia:'💊 Farmacia', hogar:'🏠 Hogar', otros:'📦 Otros' };
+
+function fmt(date) {
+  return new Date(date).toLocaleDateString('es-ES', { weekday:'short', day:'numeric', month:'short' });
+}
+function today() { return new Date().toISOString().split('T')[0]; }
+
+// ── ICONS ──
+const icons = {
+  hoy: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>,
+  hist: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>,
+  medico: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 2a4 4 0 0 1 4 4v2H8V6a4 4 0 0 1 4-4z"/><path d="M8 8H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2h-3"/><path d="M12 13v4M10 15h4"/></svg>,
+  gastos: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><path d="M12 6v2M12 16v2M8.5 9.5a3.5 1.5 0 0 1 7 0c0 1.5-1.5 2-3.5 2.5s-3.5 1-3.5 2.5a3.5 1.5 0 0 0 7 0"/></svg>,
+  docs: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>,
+  plus: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14"/></svg>,
+  chevron: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6"/></svg>,
+  phone: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.18 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>,
+  logout: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>,
+  bed: '🛏️',
+};
+
+// ── TOAST ──
+function Toast({ msg }) {
+  return msg ? <div className="toast">{msg}</div> : null;
+}
+
+// ── LOGIN ──
+function Login({ onLogin }) {
+  const [email, setEmail] = useState('');
+  const [pass, setPass] = useState('');
+  const [err, setErr] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  async function handleLogin() {
+    setLoading(true); setErr('');
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
+    if (error) { setErr('Email o contraseña incorrectos'); setLoading(false); return; }
+    const { data: profile } = await supabase.from('profiles').select('*').eq('id', data.user.id).single();
+    onLogin({ ...data.user, profile });
+    setLoading(false);
+  }
+
+  return (
+    <div className="login-wrap">
+      <div className="login-logo">Chelo</div>
+      <div className="login-sub">Cuidado en familia</div>
+      <div className="login-form">
+        <input className="input-field" type="email" placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} autoCapitalize="none" />
+        <input className="input-field" type="password" placeholder="Contraseña" value={pass} onChange={e=>setPass(e.target.value)} onKeyDown={e=>e.key==='Enter'&&handleLogin()} />
+        {err && <div className="login-error">{err}</div>}
+        <button className="login-btn" onClick={handleLogin} disabled={loading}>{loading ? 'Entrando...' : 'Entrar'}</button>
+      </div>
+    </div>
+  );
+}
+
+// ── HOY ──
+function Hoy({ user, toast }) {
+  const [log, setLog] = useState(null);
+  const [meds, setMeds] = useState([]);
+  const [medLogs, setMedLogs] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const canEdit = user.profile.rol === 'admin' || user.profile.rol === 'cuidadora';
+
+  useEffect(() => { loadData(); }, []);
+
+  async function loadData() {
+    const t = today();
+    const { data: logData } = await supabase.from('daily_logs').select('*').eq('fecha', t).maybeSingle();
+    const { data: medsData } = await supabase.from('medications').select('*').order('momento');
+    setMeds(medsData || []);
+    if (logData) {
+      setLog(logData);
+      const { data: ml } = await supabase.from('daily_medications').select('*').eq('daily_log_id', logData.id);
+      const map = {};
+      (ml||[]).forEach(m => map[m.medication_id] = m.tomado);
+      setMedLogs(map);
+    } else {
+      setLog({ fecha: t, desayuno:'', almuerzo:'', merienda:'', cena:'', estado_general: null, se_queda_en_cama: false, notas:'' });
+    }
+    setLoaded(true);
+  }
+
+  function update(field, val) {
+    setLog(prev => ({ ...prev, [field]: val }));
+  }
+
+  function toggleMed(id) {
+    setMedLogs(prev => ({ ...prev, [id]: !prev[id] }));
+  }
+
+  async function save() {
+    setSaving(true);
+    const payload = { ...log, updated_by: user.id, updated_at: new Date().toISOString() };
+    let logId = log.id;
+    if (log.id) {
+      await supabase.from('daily_logs').update(payload).eq('id', log.id);
+    } else {
+      const { data } = await supabase.from('daily_logs').insert({ ...payload, created_by: user.id }).select().single();
+      logId = data.id;
+      setLog(data);
+    }
+    // save meds
+    for (const med of meds) {
+      const tomado = !!medLogs[med.id];
+      const { data: existing } = await supabase.from('daily_medications').select('id').eq('daily_log_id', logId).eq('medication_id', med.id).maybeSingle();
+      if (existing) {
+        await supabase.from('daily_medications').update({ tomado }).eq('id', existing.id);
+      } else {
+        await supabase.from('daily_medications').insert({ daily_log_id: logId, medication_id: med.id, tomado });
+      }
+    }
+    toast('✓ Guardado');
+    setSaving(false);
+  }
+
+  if (!loaded) return <div className="empty">Cargando...</div>;
+
+  const momentoLabel = { mañana:'Mañana', tarde:'Tarde', noche:'Noche' };
+
+  return (
+    <div>
+      {/* Estado general */}
+      <div className="card" style={{marginTop:12}}>
+        <div className="card-title">Estado general</div>
+        <div className="estado-btns">
+          {['bien','regular','mal'].map(e => (
+            <button key={e} className={`estado-btn ${log.estado_general===e?`selected-${e}`:''}`} onClick={()=>canEdit&&update('estado_general', e)}>
+              <span>{e==='bien'?'😊':e==='regular'?'😐':'😔'}</span>
+              {e.charAt(0).toUpperCase()+e.slice(1)}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Medicamentos */}
+      <div className="card">
+        <div className="card-title">Medicamentos</div>
+        {meds.map(med => (
+          <div key={med.id} className="med-row">
+            <div>
+              <div className="med-name">{med.nombre}</div>
+              <div className="med-momento">{momentoLabel[med.momento]}</div>
+            </div>
+            <button className={`toggle ${medLogs[med.id]?'on':''}`} onClick={()=>canEdit&&toggleMed(med.id)} />
+          </div>
+        ))}
+        {meds.length === 0 && <div style={{color:'var(--muted)',fontSize:13}}>No hay medicamentos configurados</div>}
+      </div>
+
+      {/* Comidas */}
+      <div className="card">
+        <div className="card-title">Comidas</div>
+        <div className="comida-grid">
+          {['desayuno','almuerzo','merienda','cena'].map(c => (
+            <div key={c} className="comida-item">
+              <div className="comida-label">{c.charAt(0).toUpperCase()+c.slice(1)}</div>
+              <textarea className="comida-input" rows={2} placeholder="—" value={log[c]||''} onChange={e=>canEdit&&update(c,e.target.value)} readOnly={!canEdit} />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Cama */}
+      <div className="card">
+        <div className="cama-row">
+          <div>
+            <div className="cama-label">🛏️ Se queda en cama</div>
+            <div className="cama-sub">Al marcharnos</div>
+          </div>
+          <button className={`toggle ${log.se_queda_en_cama?'on':''}`} onClick={()=>canEdit&&update('se_queda_en_cama',!log.se_queda_en_cama)} />
+        </div>
+      </div>
+
+      {/* Notas */}
+      <div className="card">
+        <div className="card-title">Notas del día</div>
+        <textarea className="notas-input" placeholder="Observaciones, incidencias..." value={log.notas||''} onChange={e=>canEdit&&update('notas',e.target.value)} readOnly={!canEdit} />
+      </div>
+
+      {canEdit && <button className="save-btn" onClick={save} disabled={saving}>{saving?'Guardando...':'Guardar día'}</button>}
+    </div>
+  );
+}
+
+// ── HISTORIAL ──
+function Historial() {
+  const [logs, setLogs] = useState([]);
+  const [open, setOpen] = useState(null);
+  const [meds, setMeds] = useState([]);
+
+  useEffect(() => {
+    async function load() {
+      const { data } = await supabase.from('daily_logs').select('*').order('fecha', { ascending: false }).limit(30);
+      setLogs(data || []);
+      const { data: m } = await supabase.from('medications').select('*');
+      setMeds(m || []);
+    }
+    load();
+  }, []);
+
+  return (
+    <div style={{paddingTop:8}}>
+      {logs.length === 0 && <div className="empty">No hay registros todavía</div>}
+      {logs.map(log => (
+        <div key={log.id} className="hist-day">
+          <div className="hist-header" onClick={()=>setOpen(open===log.id?null:log.id)}>
+            <div>
+              <div className="hist-fecha">{fmt(log.fecha)}</div>
+              {log.estado_general && <span className={`badge badge-${log.estado_general}`} style={{marginTop:4,display:'inline-block'}}>{log.estado_general}</span>}
+            </div>
+            <div style={{color:'var(--muted)',transform:open===log.id?'rotate(180deg)':'none',transition:'0.2s'}}>{icons.chevron}</div>
+          </div>
+          {open===log.id && (
+            <div className="hist-body">
+              {['desayuno','almuerzo','merienda','cena'].map(c => log[c] && (
+                <div key={c} className="hist-row">
+                  <div className="hist-key">{c.charAt(0).toUpperCase()+c.slice(1)}</div>
+                  <div className="hist-val">{log[c]}</div>
+                </div>
+              ))}
+              {log.se_queda_en_cama && (
+                <div className="hist-row"><div className="hist-key">🛏️ Cama</div><div className="hist-val">Sí</div></div>
+              )}
+              {log.notas && (
+                <div className="hist-row"><div className="hist-key">Notas</div><div className="hist-val">{log.notas}</div></div>
+              )}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── MÉDICO ──
+function Medico({ user }) {
+  const [doctors, setDoctors] = useState([]);
+  const [appointments, setAppointments] = useState([]);
+  const [modal, setModal] = useState(null); // 'doctor' | 'cita'
+  const [form, setForm] = useState({});
+  const isAdmin = user.profile.rol === 'admin';
+
+  useEffect(() => { loadAll(); }, []);
+
+  async function loadAll() {
+    const { data: d } = await supabase.from('doctors').select('*').order('nombre');
+    const { data: a } = await supabase.from('appointments').select('*').order('fecha');
+    setDoctors(d||[]);
+    setAppointments(a||[]);
+  }
+
+  async function saveDoctor() {
+    if (form.id) await supabase.from('doctors').update(form).eq('id', form.id);
+    else await supabase.from('doctors').insert(form);
+    setModal(null); setForm({});
+    loadAll();
+  }
+
+  async function saveCita() {
+    await supabase.from('appointments').insert({ ...form, created_by: user.id });
+    setModal(null); setForm({});
+    loadAll();
+  }
+
+  const upcoming = appointments.filter(a => new Date(a.fecha) >= new Date()).slice(0,5);
+
+  return (
+    <div style={{paddingTop:8}}>
+      {upcoming.length > 0 && (
+        <>
+          <div className="section-header">Próximas citas</div>
+          {upcoming.map(a => {
+            const doc = doctors.find(d=>d.id===a.doctor_id);
+            return (
+              <div key={a.id} className="card" style={{marginTop:0}}>
+                <div style={{fontSize:13,color:'var(--accent)',fontWeight:600}}>{new Date(a.fecha).toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'})}</div>
+                <div style={{fontSize:15,marginTop:4}}>{a.motivo}</div>
+                {doc && <div style={{fontSize:12,color:'var(--muted)',marginTop:4}}>{doc.nombre} · {doc.especialidad}</div>}
+              </div>
+            );
+          })}
+        </>
+      )}
+      <div className="section-header">Médicos</div>
+      {doctors.map(doc => (
+        <div key={doc.id} className="doctor-card" onClick={()=>isAdmin&&(setForm(doc),setModal('doctor'))}>
+          <div className="doctor-name">{doc.nombre}</div>
+          {doc.especialidad && <div className="doctor-esp">{doc.especialidad}</div>}
+          {doc.telefono && <div className="doctor-tel">{icons.phone} <a href={`tel:${doc.telefono}`} style={{color:'var(--muted)',textDecoration:'none'}}>{doc.telefono}</a></div>}
+          {doc.notas && <div style={{fontSize:12,color:'var(--muted)',marginTop:8}}>{doc.notas}</div>}
+        </div>
+      ))}
+      {doctors.length === 0 && <div className="empty">No hay médicos añadidos</div>}
+
+      {isAdmin && (
+        <>
+          <button className="fab" style={{bottom:150}} onClick={()=>{setForm({});setModal('doctor')}}>+</button>
+          <button className="fab" onClick={()=>{setForm({});setModal('cita')}}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{width:22,height:22}}><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>
+          </button>
+        </>
+      )}
+
+      {modal === 'doctor' && (
+        <div className="modal-overlay" onClick={e=>e.target===e.currentTarget&&setModal(null)}>
+          <div className="modal">
+            <div className="modal-title">{form.id?'Editar médico':'Nuevo médico'}</div>
+            {['nombre','especialidad','telefono','notas'].map(f => (
+              <div key={f} className="modal-field">
+                <div className="modal-label">{f.charAt(0).toUpperCase()+f.slice(1)}</div>
+                <input className="input-field" style={{padding:'12px 14px',fontSize:14}} value={form[f]||''} onChange={e=>setForm(p=>({...p,[f]:e.target.value}))} placeholder={f==='telefono'?'612 345 678':''} />
+              </div>
+            ))}
+            <div className="modal-btns">
+              <button className="btn-cancel" onClick={()=>setModal(null)}>Cancelar</button>
+              <button className="btn-save" onClick={saveDoctor}>Guardar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {modal === 'cita' && (
+        <div className="modal-overlay" onClick={e=>e.target===e.currentTarget&&setModal(null)}>
+          <div className="modal">
+            <div className="modal-title">Nueva cita</div>
+            <div className="modal-field">
+              <div className="modal-label">Médico</div>
+              <select className="select-field" value={form.doctor_id||''} onChange={e=>setForm(p=>({...p,doctor_id:e.target.value}))}>
+                <option value="">Selecciona médico</option>
+                {doctors.map(d => <option key={d.id} value={d.id}>{d.nombre}</option>)}
+              </select>
+            </div>
+            <div className="modal-field">
+              <div className="modal-label">Fecha y hora</div>
+              <input className="input-field" style={{padding:'12px 14px',fontSize:14}} type="datetime-local" value={form.fecha||''} onChange={e=>setForm(p=>({...p,fecha:e.target.value}))} />
+            </div>
+            <div className="modal-field">
+              <div className="modal-label">Motivo</div>
+              <input className="input-field" style={{padding:'12px 14px',fontSize:14}} value={form.motivo||''} onChange={e=>setForm(p=>({...p,motivo:e.target.value}))} placeholder="Revisión, análisis..." />
+            </div>
+            <div className="modal-btns">
+              <button className="btn-cancel" onClick={()=>setModal(null)}>Cancelar</button>
+              <button className="btn-save" onClick={saveCita}>Guardar</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── GASTOS ──
+function Gastos({ user }) {
+  const [gastos, setGastos] = useState([]);
+  const [modal, setModal] = useState(false);
+  const [form, setForm] = useState({ categoria:'comida', descripcion:'', cantidad:'' });
+  const isAdmin = user.profile.rol === 'admin';
+  const isHermano = user.profile.rol === 'hermano';
+
+  useEffect(() => { loadGastos(); }, []);
+
+  async function loadGastos() {
+    const { data } = await supabase.from('expenses').select('*, profiles(nombre)').order('fecha', { ascending: false }).order('created_at', { ascending: false }).limit(50);
+    setGastos(data||[]);
+  }
+
+  async function saveGasto() {
+    await supabase.from('expenses').insert({ ...form, cantidad: parseFloat(form.cantidad), created_by: user.id });
+    setModal(false);
+    setForm({ categoria:'comida', descripcion:'', cantidad:'' });
+    loadGastos();
+  }
+
+  const total = gastos.reduce((s,g)=>s+parseFloat(g.cantidad||0),0);
+  const porCat = gastos.reduce((acc,g)=>{ acc[g.categoria]=(acc[g.categoria]||0)+parseFloat(g.cantidad||0); return acc; },{});
+
+  return (
+    <div style={{paddingTop:8}}>
+      {(isAdmin||isHermano) && (
+        <div className="card" style={{marginTop:12}}>
+          <div className="card-title">Resumen del mes</div>
+          <div style={{fontSize:32,fontWeight:700,marginBottom:12}}>{total.toFixed(2)}€</div>
+          <div className="resumen-grid">
+            {Object.entries(porCat).map(([cat,val]) => (
+              <div key={cat} className="resumen-item">
+                <div className="resumen-label">{CATS[cat]}</div>
+                <div className="resumen-val">{val.toFixed(0)}€</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="section-header">Últimos gastos</div>
+      <div className="card" style={{marginTop:0}}>
+        {gastos.length === 0 && <div style={{color:'var(--muted)',fontSize:13,textAlign:'center',padding:'12px 0'}}>No hay gastos registrados</div>}
+        {gastos.map(g => (
+          <div key={g.id} className="gasto-row">
+            <div>
+              <div className="gasto-cat">{CATS[g.categoria]}</div>
+              <div className="gasto-desc">{g.descripcion||'—'}</div>
+              {(isAdmin||isHermano) && <div style={{fontSize:11,color:'var(--muted)',marginTop:2}}>{g.profiles?.nombre}</div>}
+            </div>
+            <div style={{textAlign:'right'}}>
+              <div className="gasto-amount">{parseFloat(g.cantidad).toFixed(2)}€</div>
+              <div className="gasto-date">{new Date(g.fecha).toLocaleDateString('es-ES',{day:'numeric',month:'short'})}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {(isAdmin||user.profile.rol==='cuidadora') && (
+        <button className="fab" onClick={()=>setModal(true)}>+</button>
+      )}
+
+      {modal && (
+        <div className="modal-overlay" onClick={e=>e.target===e.currentTarget&&setModal(false)}>
+          <div className="modal">
+            <div className="modal-title">Nuevo gasto</div>
+            <div className="modal-field">
+              <div className="modal-label">Categoría</div>
+              <select className="select-field" value={form.categoria} onChange={e=>setForm(p=>({...p,categoria:e.target.value}))}>
+                {Object.entries(CATS).map(([k,v]) => <option key={k} value={k}>{v}</option>)}
+              </select>
+            </div>
+            <div className="modal-field">
+              <div className="modal-label">Cantidad (€)</div>
+              <input className="input-field" style={{padding:'12px 14px',fontSize:14}} type="number" step="0.01" min="0" placeholder="0.00" value={form.cantidad} onChange={e=>setForm(p=>({...p,cantidad:e.target.value}))} />
+            </div>
+            <div className="modal-field">
+              <div className="modal-label">Descripción</div>
+              <input className="input-field" style={{padding:'12px 14px',fontSize:14}} placeholder="Opcional" value={form.descripcion} onChange={e=>setForm(p=>({...p,descripcion:e.target.value}))} />
+            </div>
+            <div className="modal-btns">
+              <button className="btn-cancel" onClick={()=>setModal(false)}>Cancelar</button>
+              <button className="btn-save" onClick={saveGasto} disabled={!form.cantidad}>Guardar</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── DOCUMENTOS ──
+function Documentos({ user }) {
+  const [docs, setDocs] = useState([]);
+  const [uploading, setUploading] = useState(false);
+  const isAdmin = user.profile.rol === 'admin';
+  const canView = ['admin','hermano'].includes(user.profile.rol);
+
+  useEffect(() => { if(canView) loadDocs(); }, []);
+
+  async function loadDocs() {
+    const { data } = await supabase.from('documents').select('*').order('created_at',{ascending:false});
+    setDocs(data||[]);
+  }
+
+  async function upload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploading(true);
+    const path = `docs/${Date.now()}_${file.name}`;
+    const { error: upErr } = await supabase.storage.from('documents').upload(path, file);
+    if (!upErr) {
+      const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(path);
+      await supabase.from('documents').insert({ nombre: file.name, tipo: file.type, url: publicUrl, uploaded_by: user.id });
+      loadDocs();
+    }
+    setUploading(false);
+  }
+
+  if (!canView) return <div className="empty">No tienes acceso a esta sección</div>;
+
+  return (
+    <div style={{paddingTop:12}}>
+      {isAdmin && (
+        <label style={{display:'block',margin:'0 16px 16px'}}>
+          <div style={{padding:'14px',background:'var(--surface2)',border:'2px dashed var(--border)',borderRadius:14,textAlign:'center',cursor:'pointer',color:'var(--muted)',fontSize:14}}>
+            {uploading ? 'Subiendo...' : '📎 Subir documento o foto'}
+          </div>
+          <input type="file" accept="image/*,application/pdf" style={{display:'none'}} onChange={upload} />
+        </label>
+      )}
+
+      {docs.length === 0 && <div className="empty">No hay documentos todavía</div>}
+
+      <div className="doc-grid">
+        {docs.map(doc => (
+          <a key={doc.id} href={doc.url} target="_blank" rel="noreferrer" style={{textDecoration:'none'}}>
+            <div className="doc-item">
+              {doc.tipo?.startsWith('image') ? (
+                <img src={doc.url} alt={doc.nombre} style={{width:'100%',aspectRatio:'3/4',objectFit:'cover'}} />
+              ) : (
+                <div className="doc-img" style={{width:'100%',aspectRatio:'3/4',display:'flex',alignItems:'center',justifyContent:'center',fontSize:40}}>📄</div>
+              )}
+              <div className="doc-info">
+                <div className="doc-name">{doc.nombre}</div>
+                <div className="doc-date">{new Date(doc.created_at).toLocaleDateString('es-ES',{day:'numeric',month:'short',year:'numeric'})}</div>
+              </div>
+            </div>
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── APP ──
+function App() {
+  const [user, setUser] = useState(null);
+  const [tab, setTab] = useState('hoy');
+  const [toastMsg, setToastMsg] = useState('');
+  const [checking, setChecking] = useState(true);
+
+  function toast(msg) {
+    setToastMsg(msg);
+    setTimeout(()=>setToastMsg(''), 2500);
+  }
+
+  useEffect(() => {
+    supabase.auth.getSession().then(async ({ data }) => {
+      if (data.session) {
+        const { data: profile } = await supabase.from('profiles').select('*').eq('id', data.session.user.id).single();
+        setUser({ ...data.session.user, profile });
+      }
+      setChecking(false);
+    });
+  }, []);
+
+  async function logout() {
+    await supabase.auth.signOut();
+    setUser(null);
+  }
+
+  if (checking) return <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100%',color:'var(--muted)'}}>Cargando...</div>;
+  if (!user) return <Login onLogin={setUser} />;
+
+  const tabs = [
+    { id:'hoy', label:'Hoy', icon:icons.hoy },
+    { id:'historial', label:'Historial', icon:icons.hist },
+    { id:'medico', label:'Médico', icon:icons.medico },
+    { id:'gastos', label:'Gastos', icon:icons.gastos },
+    ...(user.profile.rol !== 'cuidadora' ? [{ id:'documentos', label:'Docs', icon:icons.docs }] : []),
+  ];
+
+  const titles = { hoy:'Registro de hoy', historial:'Historial', medico:'Médico', gastos:'Gastos', documentos:'Documentos' };
+
+  return (
+    <>
+      <Toast msg={toastMsg} />
+      <div className="topbar">
+        <div>
+          <div className="topbar-title">Chelo</div>
+          <div className="topbar-sub">{titles[tab]}</div>
+        </div>
+        <div style={{display:'flex',alignItems:'center',gap:12}}>
+          <div className="avatar" onClick={logout} title="Cerrar sesión">
+            {user.profile?.nombre?.[0]?.toUpperCase() || '?'}
+          </div>
+        </div>
+      </div>
+
+      <div className="scroll-area">
+        {tab==='hoy' && <Hoy user={user} toast={toast} />}
+        {tab==='historial' && <Historial />}
+        {tab==='medico' && <Medico user={user} />}
+        {tab==='gastos' && <Gastos user={user} />}
+        {tab==='documentos' && <Documentos user={user} />}
+      </div>
+
+      <div className="bottom-nav">
+        {tabs.map(t => (
+          <button key={t.id} className={`nav-item ${tab===t.id?'active':''}`} onClick={()=>setTab(t.id)}>
+            {t.icon}
+            <span>{t.label}</span>
+          </button>
+        ))}
+      </div>
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
