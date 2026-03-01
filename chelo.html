@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Chelo</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  :root {
+    --bg: #0f0f13; --surface: #1a1a22; --surface2: #22222e; --border: #2e2e3e;
+    --text: #f0f0f5; --muted: #7a7a94; --accent: #7c6af7; --accent2: #5eead4;
+    --danger: #f87171; --success: #4ade80; --bien: #4ade80; --regular: #fbbf24; --mal: #f87171;
+  }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; overflow: hidden; }
+  #root { height: 100%; display: flex; flex-direction: column; }
+  .scroll-area { flex: 1; overflow-y: auto; padding-bottom: 90px; -webkit-overflow-scrolling: touch; }
+  .scroll-area::-webkit-scrollbar { display: none; }
+  .topbar { padding: 16px 20px 12px; display: flex; align-items: center; justify-content: space-between; background: var(--bg); border-bottom: 1px solid var(--border); }
+  .topbar-title { font-family: 'DM Serif Display', serif; font-size: 22px; }
+  .topbar-sub { font-size: 12px; color: var(--muted); margin-top: 1px; }
+  .avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: white; cursor: pointer; flex-shrink: 0; }
+  .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface); border-top: 1px solid var(--border); display: flex; padding: 8px 0; z-index: 20; }
+  .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 0; cursor: pointer; color: var(--muted); border: none; background: none; font-family: 'DM Sans', sans-serif; transition: color 0.2s; }
+  .nav-item.active { color: var(--accent); }
+  .nav-item svg { width: 22px; height: 22px; }
+  .nav-item span { font-size: 10px; font-weight: 500; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px; margin: 0 16px 12px; }
+  .card-title { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
+  .estado-btns { display: flex; gap: 8px; }
+  .estado-btn { flex: 1; padding: 10px 6px; border-radius: 12px; border: 2px solid var(--border); background: transparent; color: var(--muted); font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .estado-btn.sel-bien { border-color: var(--bien); background: rgba(74,222,128,0.12); color: var(--bien); }
+  .estado-btn.sel-regular { border-color: var(--regular); background: rgba(251,191,36,0.12); color: var(--regular); }
+  .estado-btn.sel-mal { border-color: var(--mal); background: rgba(248,113,113,0.12); color: var(--mal); }
+  .estado-btn span { font-size: 20px; }
+  .comida-row { padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .comida-row:last-child { border-bottom: none; }
+  .comida-name { font-size: 14px; font-weight: 500; margin-bottom: 8px; }
+  .comida-quien { font-size: 11px; color: var(--accent2); margin-top: 6px; }
+  .comida-opts { display: flex; gap: 6px; }
+  .comida-opt { padding: 7px 12px; border-radius: 8px; border: 1.5px solid var(--border); background: transparent; color: var(--muted); font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+  .comida-opt.sel-si { border-color: var(--bien); background: rgba(74,222,128,0.12); color: var(--bien); }
+  .comida-opt.sel-no { border-color: var(--mal); background: rgba(248,113,113,0.12); color: var(--mal); }
+  .comida-opt.sel-nosabe { border-color: var(--regular); background: rgba(251,191,36,0.12); color: var(--regular); }
+  .med-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .med-row:last-child { border-bottom: none; }
+  .med-name { font-size: 14px; }
+  .med-momento { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .med-quien { font-size: 11px; color: var(--accent2); margin-top: 2px; }
+  .toggle { width: 48px; height: 28px; border-radius: 14px; background: var(--border); border: none; cursor: pointer; position: relative; transition: background 0.2s; flex-shrink: 0; }
+  .toggle.on { background: var(--success); }
+  .toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: white; transition: transform 0.2s; }
+  .toggle.on::after { transform: translateX(20px); }
+  .cama-row { display: flex; align-items: center; justify-content: space-between; }
+  .notas-input { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 12px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none; resize: none; min-height: 80px; }
+  .notas-input:focus { border-color: var(--accent); }
+  .save-btn { margin: 0 16px 12px; width: calc(100% - 32px); padding: 16px; border-radius: 14px; background: var(--accent); border: none; color: white; font-family: 'DM Sans', sans-serif; font-size: 16px; font-weight: 600; cursor: pointer; }
+  .login-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 24px; gap: 24px; }
+  .login-logo { font-family: 'DM Serif Display', serif; font-size: 56px; }
+  .login-sub { font-size: 14px; color: var(--muted); margin-top: -16px; }
+  .login-form { width: 100%; display: flex; flex-direction: column; gap: 12px; }
+  .input-field { width: 100%; padding: 14px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 16px; outline: none; }
+  .input-field:focus { border-color: var(--accent); }
+  .input-field::placeholder { color: var(--muted); }
+  .login-btn { width: 100%; padding: 16px; background: var(--accent); border: none; border-radius: 14px; color: white; font-family: 'DM Sans', sans-serif; font-size: 16px; font-weight: 600; cursor: pointer; }
+  .login-error { font-size: 13px; color: var(--danger); text-align: center; padding: 4px 0; }
+  .hist-day { margin: 0 16px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+  .hist-header { padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
+  .hist-fecha { font-size: 15px; font-weight: 500; }
+  .hist-body { padding: 0 16px 14px; border-top: 1px solid var(--border); }
+  .hist-row { display: flex; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .hist-row:last-child { border-bottom: none; }
+  .hist-key { color: var(--muted); min-width: 80px; flex-shrink: 0; }
+  .hist-val { flex: 1; }
+  .hist-quien { font-size: 11px; color: var(--accent2); margin-top: 2px; }
+  .badge { display: inline-block; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+  .badge-bien { background: rgba(74,222,128,0.15); color: var(--bien); }
+  .badge-regular { background: rgba(251,191,36,0.15); color: var(--regular); }
+  .badge-mal { background: rgba(248,113,113,0.15); color: var(--mal); }
+  .doctor-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px; margin: 0 16px 12px; }
+  .doctor-name { font-size: 16px; font-weight: 600; }
+  .doctor-esp { font-size: 13px; color: var(--accent2); margin-top: 2px; }
+  .doctor-tel { font-size: 13px; color: var(--muted); margin-top: 8px; }
+  .section-header { padding: 16px 20px 8px; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+  .mes-header { padding: 8px 16px 4px; font-size: 13px; font-weight: 600; display: flex; justify-content: space-between; }
+  .mes-total { color: var(--accent); }
+  .gasto-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .gasto-row:last-child { border-bottom: none; }
+  .gasto-cat { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; }
+  .gasto-desc { font-size: 14px; margin-top: 2px; }
+  .gasto-amount { font-size: 16px; font-weight: 600; }
+  .gasto-date { font-size: 11px; color: var(--muted); margin-top: 2px; text-align: right; }
+  .resumen-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 4px; }
+  .resumen-item { background: var(--surface2); border-radius: 12px; padding: 12px; }
+  .resumen-label { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; }
+  .resumen-val { font-size: 20px; font-weight: 600; margin-top: 4px; }
+  .filter-tabs { display: flex; gap: 6px; padding: 4px 16px 12px; overflow-x: auto; }
+  .filter-tabs::-webkit-scrollbar { display: none; }
+  .filter-tab { padding: 6px 14px; border-radius: 20px; border: 1.5px solid var(--border); background: transparent; color: var(--muted); font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: all 0.2s; }
+  .filter-tab.active { border-color: var(--accent); color: var(--accent); background: rgba(124,106,247,0.1); }
+  .fab { position: fixed; bottom: 80px; right: 20px; width: 52px; height: 52px; border-radius: 50%; background: var(--accent); border: none; color: white; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 20px rgba(124,106,247,0.4); z-index: 15; }
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 30; display: flex; align-items: flex-end; }
+  .modal { background: var(--surface); border-radius: 24px 24px 0 0; padding: 24px 20px; width: 100%; max-height: 85vh; overflow-y: auto; }
+  .modal-title { font-size: 18px; font-weight: 600; margin-bottom: 20px; }
+  .modal-field { margin-bottom: 14px; }
+  .modal-label { font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+  .select-field { width: 100%; padding: 14px 16px; background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none; }
+  .modal-btns { display: flex; gap: 10px; margin-top: 20px; }
+  .btn-cancel { flex: 1; padding: 14px; border-radius: 12px; border: 1px solid var(--border); background: transparent; color: var(--muted); font-family: 'DM Sans', sans-serif; font-size: 15px; cursor: pointer; }
+  .btn-save { flex: 2; padding: 14px; border-radius: 12px; border: none; background: var(--accent); color: white; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 600; cursor: pointer; }
+  .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 12px 20px; font-size: 14px; font-weight: 500; z-index: 50; animation: fadeInOut 2.5s forwards; white-space: nowrap; }
+  @keyframes fadeInOut { 0%{opacity:0;transform:translateX(-50%) translateY(-10px)} 15%{opacity:1;transform:translateX(-50%) translateY(0)} 75%{opacity:1} 100%{opacity:0} }
+  .empty { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 14px; }
+  .pendiente-badge { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; background: rgba(251,191,36,0.15); color: var(--regular); }
+  .pagado-badge { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; background: rgba(74,222,128,0.15); color: var(--success); }
+  .pagar-btn { padding: 6px 14px; border-radius: 8px; border: none; background: var(--accent); color: white; font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+  .shop-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .shop-row:last-child { border-bottom: none; }
+  .shop-check { width: 24px; height: 24px; border-radius: 6px; border: 2px solid var(--border); background: transparent; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.2s; font-size: 14px; }
+  .shop-check.done { background: var(--success); border-color: var(--success); }
+  .shop-name { flex: 1; font-size: 14px; }
+  .shop-name.done { text-decoration: line-through; color: var(--muted); }
+  .shop-cat-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .gastos-tabs { display: flex; margin: 12px 16px 0; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); }
+  .gastos-tab { flex: 1; padding: 10px; text-align: center; font-size: 13px; font-weight: 500; cursor: pointer; background: transparent; border: none; color: var(--muted); font-family: 'DM Sans', sans-serif; transition: all 0.2s; }
+  .gastos-tab.active { background: var(--accent); color: white; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+var SUPABASE_URL = 'https://teyihnnrsuhdbhrknfza.supabase.co';
+var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRleWlobm5yc3VoZGJocmtuZnphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzMjUzMjUsImV4cCI6MjA4NzkwMTMyNX0.VBPQYuwSaWgURyzHwpsrpVdjX9gwq8xfCJOl1-EkGFI';
+
+var CATS = { comida:'🍔 Comida', transporte:'🚗 Transporte', farmacia:'💊 Farmacia', hogar:'🏠 Hogar', otros:'📦 Otros' };
+var MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+var CLBL = { si:'✅ Sí comió', no:'❌ No comió', nosabe:'❓ No sabe' };
+var MLBL = { 'mañana':'Mañana', tarde:'Tarde', noche:'Noche' };
+var COMIDAS_LIST = ['desayuno','almuerzo','merienda','cena'];
+
+var IC = {
+  hoy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>',
+  hist: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>',
+  medico: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2a4 4 0 0 1 4 4v2H8V6a4 4 0 0 1 4-4z"/><path d="M8 8H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2h-3"/><path d="M12 13v4M10 15h4"/></svg>',
+  gastos: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M12 6v2M12 16v2M8.5 9.5a3.5 1.5 0 0 1 7 0c0 1.5-1.5 2-3.5 2.5s-3.5 1-3.5 2.5a3.5 1.5 0 0 0 7 0"/></svg>',
+  docs: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
+  compra: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>',
+  chev: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px"><path d="M6 9l6 6 6-6"/></svg>',
+};
+
+// ── SUPABASE CLIENT (inline, no CDN) ──
+function sbFetch(path, opts) {
+  opts = opts || {};
+  var url = SUPABASE_URL + path;
+  var headers = Object.assign({ 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + (sbToken || SUPABASE_KEY), 'Content-Type': 'application/json' }, opts.headers || {});
+  return fetch(url, Object.assign({}, opts, { headers: headers }));
+}
+
+var sbToken = null;
+var sbRefreshToken = null;
+var sbUser = null;
+
+function sbSave(session) {
+  if (!session) return;
+  sbToken = session.access_token;
+  sbRefreshToken = session.refresh_token;
+  sbUser = session.user;
+  try { localStorage.setItem('chelo_session', JSON.stringify({ access_token: session.access_token, refresh_token: session.refresh_token, user: session.user })); } catch(e){}
+}
+
+function sbLoad() {
+  try {
+    var s = localStorage.getItem('chelo_session');
+    if (s) { var d = JSON.parse(s); sbToken = d.access_token; sbRefreshToken = d.refresh_token; sbUser = d.user; return true; }
+  } catch(e){}
+  return false;
+}
+
+function sbClear() {
+  sbToken = null; sbRefreshToken = null; sbUser = null;
+  try { localStorage.removeItem('chelo_session'); } catch(e){}
+}
+
+async function sbSignIn(email, password) {
+  var r = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=password', {
+    method: 'POST',
+    headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: email, password: password })
+  });
+  var d = await r.json();
+  if (d.error || d.error_code) return { error: d };
+  sbSave(d);
+  return { data: d };
+}
+
+async function sbSignOut() {
+  await fetch(SUPABASE_URL + '/auth/v1/logout', { method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + sbToken } });
+  sbClear();
+}
+
+async function sbGetProfile() {
+  var r = await sbFetch('/rest/v1/profiles?id=eq.' + sbUser.id + '&select=*');
+  var d = await r.json();
+  return d[0] || null;
+}
+
+async function dbGet(table, query) {
+  var r = await sbFetch('/rest/v1/' + table + '?' + (query||'') + '&select=*');
+  if (!r.ok) return [];
+  return await r.json();
+}
+
+async function dbGetOne(table, query) {
+  var arr = await dbGet(table, query);
+  return arr[0] || null;
+}
+
+async function dbInsert(table, body) {
+  var r = await sbFetch('/rest/v1/' + table, { method: 'POST', headers: { 'Prefer': 'return=representation' }, body: JSON.stringify(body) });
+  var d = await r.json();
+  return Array.isArray(d) ? d[0] : d;
+}
+
+async function dbUpdate(table, query, body) {
+  var r = await sbFetch('/rest/v1/' + table + '?' + query, { method: 'PATCH', headers: { 'Prefer': 'return=representation' }, body: JSON.stringify(body) });
+  return await r.json();
+}
+
+// ── STATE ──
+var user = null, profile = null, tab = 'hoy', histOpen = null, gastoFiltro = 'todos', modalOpen = null, modalForm = {};
+var logData = null, medsData = [], medLogs = {}, medQuien = {};
+var comidas = {}, comidaQuien = {};
+var histLogs = [], doctors = [], appts = [], gastos = [], docs = [], shopping = [];
+var histLoaded = false, doctorsLoaded = false, gastosLoaded = false, docsLoaded = false, shoppingLoaded = false;
+var gastoTab = 'pendientes';
+
+function today() { return new Date().toISOString().split('T')[0]; }
+function nowTime() { var n=new Date(); return ('0'+n.getHours()).slice(-2)+':'+('0'+n.getMinutes()).slice(-2)+'h'; }
+function fmtFecha(d) { return new Date(d+'T12:00:00').toLocaleDateString('es-ES',{weekday:'short',day:'numeric',month:'short'}); }
+function fmtMes(d) { var dt=new Date(d+'T12:00:00'); return MESES[dt.getMonth()]+' '+dt.getFullYear(); }
+function fmtFechaCorta(d) { var dt=new Date(d+'T12:00:00'); return ('0'+dt.getDate()).slice(-2)+'/'+('0'+(dt.getMonth()+1)).slice(-2)+'/'+dt.getFullYear(); }
+
+function showToast(msg) {
+  var t = document.createElement('div');
+  t.className = 'toast'; t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(function(){ t.remove(); }, 2600);
+}
+
+// ── RENDER ──
+function render() {
+  var root = document.getElementById('root');
+  if (!user) { root.innerHTML = loginHTML(); bindLogin(); return; }
+  var isAdmin = profile && profile.rol === 'admin';
+  var isHermano = profile && profile.rol === 'hermano';
+  var tabs = [
+    {id:'hoy',label:'Hoy',icon:IC.hoy},
+    {id:'historial',label:'Historial',icon:IC.hist},
+    {id:'medico',label:'Médico',icon:IC.medico},
+    {id:'compra',label:'Compra',icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>'},
+  ];
+  if (isAdmin || isHermano) {
+    tabs.push({id:'gastos',label:'Gastos',icon:IC.gastos});
+    tabs.push({id:'documentos',label:'Docs',icon:IC.docs});
+  }
+  var av = profile && profile.nombre ? profile.nombre[0].toUpperCase() : '?';
+  var titles = {hoy:'Registro de hoy',historial:'Historial',medico:'Médico',gastos:'Gastos',documentos:'Documentos',compra:'Lista de la compra'};
+  root.innerHTML =
+    '<div class="topbar"><div><div class="topbar-title">Chelo</div><div class="topbar-sub">'+titles[tab]+'</div></div><div class="avatar" id="logout-btn">'+av+'</div></div>' +
+    '<div class="scroll-area" id="main-content"><div class="empty">Cargando...</div></div>' +
+    '<div class="bottom-nav">' + tabs.map(function(t){ return '<button class="nav-item '+(tab===t.id?'active':'')+'" data-tab="'+t.id+'">'+t.icon+'<span>'+t.label+'</span></button>'; }).join('') + '</div>' +
+    (modalOpen ? modalHTML() : '');
+
+  document.getElementById('logout-btn').onclick = function(){ sbSignOut(); user=null; profile=null; render(); };
+  document.querySelectorAll('[data-tab]').forEach(function(b){ b.onclick = function(){ tab=b.dataset.tab; renderTab(); }; });
+  if (modalOpen) bindModal();
+  renderTab();
+}
+
+function renderTab() {
+  document.querySelectorAll('[data-tab]').forEach(function(b){ b.classList.toggle('active', b.dataset.tab===tab); });
+  var c = document.getElementById('main-content');
+  if (!c) return;
+  if (tab==='hoy') { c.innerHTML = hoyHTML(); bindHoy(); }
+  else if (tab==='historial') renderHistorial(c);
+  else if (tab==='medico') renderMedico(c);
+  else if (tab==='gastos') renderGastos(c);
+  else if (tab==='documentos') renderDocs(c);
+  else if (tab==='compra') renderCompra(c);
+}
+
+// ── LOGIN ──
+function loginHTML() {
+  return '<div class="login-wrap"><div class="login-logo">Chelo</div><div class="login-sub">Cuidado en familia</div><div class="login-form"><input class="input-field" id="lemail" type="email" placeholder="Email" autocapitalize="none" autocorrect="off"/><input class="input-field" id="lpass" type="password" placeholder="Contraseña"/><div class="login-error" id="lerr" style="display:none">Email o contraseña incorrectos</div><button class="login-btn" id="lbtn">Entrar</button></div></div>';
+}
+
+function bindLogin() {
+  async function doLogin() {
+    var email = document.getElementById('lemail').value.trim();
+    var pass = document.getElementById('lpass').value;
+    if (!email || !pass) return;
+    document.getElementById('lbtn').textContent = 'Entrando...';
+    document.getElementById('lbtn').disabled = true;
+    var result = await sbSignIn(email, pass);
+    if (result.error) {
+      document.getElementById('lerr').style.display = 'block';
+      document.getElementById('lbtn').textContent = 'Entrar';
+      document.getElementById('lbtn').disabled = false;
+      return;
+    }
+    user = sbUser;
+    profile = await sbGetProfile();
+    await loadHoyData();
+    render();
+  }
+  document.getElementById('lbtn').onclick = doLogin;
+  document.getElementById('lpass').onkeydown = function(e){ if(e.key==='Enter') doLogin(); };
+}
+
+// ── HOY DATA ──
+async function loadHoyData() {
+  var t = today();
+  var ld = await dbGetOne('daily_logs', 'fecha=eq.'+t);
+  var md = await dbGet('medications', 'order=momento');
+  medsData = md || [];
+  if (ld) {
+    logData = ld;
+    COMIDAS_LIST.forEach(function(c){ comidas[c] = ld[c] || null; comidaQuien[c] = ld[c+'_quien'] || null; });
+    if (ld.id) {
+      var ml = await dbGet('daily_medications', 'daily_log_id=eq.'+ld.id);
+      medLogs = {}; medQuien = {};
+      (ml||[]).forEach(function(m){ medLogs[m.medication_id]=m.tomado; medQuien[m.medication_id]=m.registrado_por; });
+    }
+  } else {
+    logData = { fecha:t, estado_general:null, se_queda_en_cama:false, notas:'', estado_quien:null, cama_quien:null };
+    comidas = {}; comidaQuien = {}; medLogs = {}; medQuien = {};
+  }
+}
+
+// ── HOY ──
+function hoyHTML() {
+  var ld = logData || {};
+  var medsH = medsData.map(function(med){
+    return '<div class="med-row"><div><div class="med-name">'+med.nombre+'</div><div class="med-momento">'+(MLBL[med.momento]||med.momento)+'</div>'+(medQuien[med.id]?'<div class="med-quien">'+medQuien[med.id]+'</div>':'')+'</div><button class="toggle '+(medLogs[med.id]?'on':'')+'" data-med="'+med.id+'"></button></div>';
+  }).join('');
+
+  var comidasH = COMIDAS_LIST.map(function(c){
+    return '<div class="comida-row"><div class="comida-name">'+c.charAt(0).toUpperCase()+c.slice(1)+'</div><div class="comida-opts"><button class="comida-opt '+(comidas[c]==='si'?'sel-si':'')+'" data-comida="'+c+'" data-val="si">✅ Sí</button><button class="comida-opt '+(comidas[c]==='no'?'sel-no':'')+'" data-comida="'+c+'" data-val="no">❌ No</button><button class="comida-opt '+(comidas[c]==='nosabe'?'sel-nosabe':'')+'" data-comida="'+c+'" data-val="nosabe">❓ NS</button></div>'+(comidaQuien[c]?'<div class="comida-quien">'+comidaQuien[c]+'</div>':'')+'</div>';
+  }).join('');
+
+  return '<div class="card" style="margin-top:12px"><div class="card-title">Estado general</div><div class="estado-btns">'+
+    ['bien','regular','mal'].map(function(e){ return '<button class="estado-btn '+(ld.estado_general===e?'sel-'+e:'')+'" data-estado="'+e+'"><span>'+(e==='bien'?'😊':e==='regular'?'😐':'😔')+'</span>'+e.charAt(0).toUpperCase()+e.slice(1)+'</button>'; }).join('') +
+    '</div>'+(ld.estado_quien?'<div style="font-size:11px;color:var(--accent2);margin-top:8px">'+ld.estado_quien+'</div>':'')+'</div>'+
+    '<div class="card"><div class="card-title">Medicamentos</div>'+(medsH||'<div style="color:var(--muted);font-size:13px">Sin medicamentos configurados</div>')+'</div>'+
+    '<div class="card"><div class="card-title">Comidas</div>'+comidasH+'</div>'+
+    '<div class="card"><div class="cama-row"><div><div style="font-size:14px">🛏️ Se queda en cama</div><div style="font-size:12px;color:var(--muted);margin-top:2px">Al marcharnos</div>'+(ld.cama_quien?'<div style="font-size:11px;color:var(--accent2);margin-top:2px">'+ld.cama_quien+'</div>':'')+'</div><button class="toggle '+(ld.se_queda_en_cama?'on':'')+'" id="cama-toggle"></button></div></div>'+
+    '<div class="card"><div class="card-title">Notas del día</div><textarea class="notas-input" id="notas-input" placeholder="Observaciones, incidencias...">'+(ld.notas||'')+'</textarea></div>'+
+    '<button class="save-btn" id="save-btn">Guardar día</button>';
+}
+
+function bindHoy() {
+  document.querySelectorAll('[data-estado]').forEach(function(b){
+    b.onclick = function(){
+      if (profile.rol !== 'admin' && profile.rol !== 'hermano') return;
+      logData.estado_general = b.dataset.estado;
+      logData.estado_quien = profile.nombre + ' · ' + nowTime();
+      renderTab();
+    };
+  });
+  document.querySelectorAll('[data-med]').forEach(function(b){
+    b.onclick = function(){
+      var id = b.dataset.med;
+      medLogs[id] = !medLogs[id];
+      medQuien[id] = medLogs[id] ? profile.nombre + ' · ' + nowTime() : null;
+      renderTab();
+    };
+  });
+  document.querySelectorAll('[data-comida]').forEach(function(b){
+    b.onclick = function(){
+      var c = b.dataset.comida, v = b.dataset.val;
+      comidas[c] = comidas[c]===v ? null : v;
+      comidaQuien[c] = comidas[c] ? profile.nombre + ' · ' + nowTime() : null;
+      renderTab();
+    };
+  });
+  var ct = document.getElementById('cama-toggle');
+  if (ct) ct.onclick = function(){
+    logData.se_queda_en_cama = !logData.se_queda_en_cama;
+    logData.cama_quien = profile.nombre + ' · ' + nowTime();
+    renderTab();
+  };
+  var ni = document.getElementById('notas-input');
+  if (ni) ni.oninput = function(){ logData.notas = ni.value; };
+  var sb2 = document.getElementById('save-btn');
+  if (sb2) sb2.onclick = async function(){
+    sb2.disabled = true; sb2.textContent = 'Guardando...';
+    var payload = {
+      fecha: today(), estado_general: logData.estado_general, se_queda_en_cama: logData.se_queda_en_cama,
+      notas: logData.notas, estado_quien: logData.estado_quien, cama_quien: logData.cama_quien,
+      updated_by: sbUser.id, updated_at: new Date().toISOString()
+    };
+    COMIDAS_LIST.forEach(function(c){ payload[c]=comidas[c]||null; payload[c+'_quien']=comidaQuien[c]||null; });
+    var logId = logData.id;
+    if (logData.id) {
+      await dbUpdate('daily_logs', 'id=eq.'+logData.id, payload);
+    } else {
+      payload.created_by = sbUser.id;
+      var nd = await dbInsert('daily_logs', payload);
+      if (nd && nd.id) { logId = nd.id; logData.id = nd.id; }
+    }
+    if (logId) {
+      for (var i=0; i<medsData.length; i++) {
+        var med = medsData[i];
+        var tomado = !!medLogs[med.id];
+        var rp = medQuien[med.id] || null;
+        var ex = await dbGetOne('daily_medications', 'daily_log_id=eq.'+logId+'&medication_id=eq.'+med.id);
+        if (ex) await dbUpdate('daily_medications', 'id=eq.'+ex.id, {tomado:tomado,registrado_por:rp});
+        else await dbInsert('daily_medications', {daily_log_id:logId,medication_id:med.id,tomado:tomado,registrado_por:rp});
+      }
+    }
+    showToast('✓ Guardado');
+    sb2.disabled = false; sb2.textContent = 'Guardar día';
+  };
+}
+
+// ── HISTORIAL ──
+function renderHistorial(c) {
+  if (!histLoaded) {
+    c.innerHTML = '<div class="empty">Cargando...</div>';
+    dbGet('daily_logs', 'order=fecha.desc&limit=60').then(function(data){
+      histLogs = data || []; histLoaded = true;
+      if (tab==='historial') renderHistorial(document.getElementById('main-content'));
+    });
+    return;
+  }
+  if (!histLogs.length) { c.innerHTML = '<div class="empty">No hay registros todavía</div>'; return; }
+  c.innerHTML = '<div style="padding-top:8px">'+histLogs.map(function(log){
+    var open = histOpen===log.id;
+    return '<div class="hist-day"><div class="hist-header" data-hist="'+log.id+'"><div><div class="hist-fecha">'+fmtFecha(log.fecha)+'</div>'+(log.estado_general?'<span class="badge badge-'+log.estado_general+'" style="margin-top:4px;display:inline-block">'+log.estado_general+'</span>':'')+(log.estado_quien?'<span style="font-size:11px;color:var(--muted);margin-left:6px">· '+log.estado_quien+'</span>':'')+'</div><div style="color:var(--muted);transform:'+(open?'rotate(180deg)':'none')+';transition:0.2s">'+IC.chev+'</div></div>'+
+      (open?'<div class="hist-body">'+COMIDAS_LIST.map(function(c2){ return '<div class="hist-row"><div class="hist-key">'+c2.charAt(0).toUpperCase()+c2.slice(1)+'</div><div class="hist-val"><div>'+(log[c2]?CLBL[log[c2]]:'—')+'</div>'+(log[c2+'_quien']?'<div class="hist-quien">'+log[c2+'_quien']+'</div>':'')+'</div></div>'; }).join('')+
+        '<div class="hist-row"><div class="hist-key">🛏️ Cama</div><div class="hist-val"><div>'+(log.se_queda_en_cama?'Sí':'No')+'</div>'+(log.cama_quien?'<div class="hist-quien">'+log.cama_quien+'</div>':'')+'</div></div>'+
+        (log.notas?'<div class="hist-row"><div class="hist-key">Notas</div><div class="hist-val">'+log.notas+'</div></div>':'')+
+        '</div>':'')+'</div>';
+  }).join('')+'</div>';
+  document.querySelectorAll('[data-hist]').forEach(function(b){
+    b.onclick = function(){ histOpen = histOpen===b.dataset.hist ? null : b.dataset.hist; renderHistorial(document.getElementById('main-content')); };
+  });
+}
+
+// ── MÉDICO ──
+function renderMedico(c) {
+  if (!doctorsLoaded) {
+    c.innerHTML = '<div class="empty">Cargando...</div>';
+    Promise.all([dbGet('doctors','order=nombre'), dbGet('appointments','order=fecha')]).then(function(results){
+      doctors = results[0]||[]; appts = results[1]||[]; doctorsLoaded=true;
+      if (tab==='medico') renderMedico(document.getElementById('main-content'));
+    });
+    return;
+  }
+  var isAdmin = profile.rol==='admin';
+  var upcoming = appts.filter(function(a){ return new Date(a.fecha)>=new Date(); }).slice(0,5);
+  c.innerHTML = '<div style="padding-top:8px">'+
+    (upcoming.length?'<div class="section-header">Próximas citas</div>'+upcoming.map(function(a){
+      var doc=doctors.find(function(d){ return d.id===a.doctor_id; });
+      return '<div class="card" style="margin-top:0"><div style="font-size:13px;color:var(--accent);font-weight:600">'+new Date(a.fecha).toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'})+'</div><div style="font-size:15px;margin-top:4px">'+a.motivo+'</div>'+(doc?'<div style="font-size:12px;color:var(--muted);margin-top:4px">'+doc.nombre+(doc.especialidad?' · '+doc.especialidad:'')+'</div>':'')+'</div>';
+    }).join(''):'')+
+    '<div class="section-header">Médicos</div>'+
+    (doctors.length?doctors.map(function(d){ return '<div class="doctor-card"'+(isAdmin?' data-doc-id="'+d.id+'"':'')+'><div class="doctor-name">'+d.nombre+'</div>'+(d.especialidad?'<div class="doctor-esp">'+d.especialidad+'</div>':'')+(d.telefono?'<div class="doctor-tel">📞 '+d.telefono+'</div>':'')+(d.notas?'<div style="font-size:12px;color:var(--muted);margin-top:8px">'+d.notas+'</div>':'')+'</div>'; }).join(''):'<div class="empty">No hay médicos añadidos</div>')+
+    (isAdmin?'<button class="fab" style="bottom:145px" id="fab-doctor">+</button><button class="fab" id="fab-cita"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:22px;height:22px"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></button>':'')+
+    '</div>';
+  if (isAdmin) {
+    var fd = document.getElementById('fab-doctor');
+    if (fd) fd.onclick = function(){ modalOpen='doctor'; modalForm={}; render(); };
+    var fc = document.getElementById('fab-cita');
+    if (fc) fc.onclick = function(){ modalOpen='cita'; modalForm={}; render(); };
+    document.querySelectorAll('[data-doc-id]').forEach(function(el){
+      el.onclick = function(){
+        var doc = doctors.find(function(d){ return d.id===el.dataset.docId; });
+        if (doc) { modalOpen='doctor'; modalForm=Object.assign({},doc); render(); }
+      };
+    });
+  }
+}
+
+// ── GASTOS ──
+function renderGastos(c) {
+  if (!gastosLoaded) {
+    c.innerHTML = '<div class="empty">Cargando...</div>';
+    dbGet('expenses','order=created_at.desc&limit=300').then(function(data){
+      gastos = data || []; gastosLoaded = true;
+      if (tab==='gastos') renderGastos(document.getElementById('main-content'));
+    });
+    return;
+  }
+  var isAdmin = profile.rol==='admin';
+  var pendientes = gastos.filter(function(g){ return g.estado==='pendiente'||!g.estado; });
+  var pagados = gastos.filter(function(g){ return g.estado==='pagado'; });
+  var totalPend = pendientes.reduce(function(s,g){ return s+parseFloat(g.cantidad||0); },0);
+  var porMes = {};
+  pagados.forEach(function(g){
+    var d = g.pagado_at||g.created_at||today()+'T00:00:00';
+    var m = fmtMes(d.split('T')[0]);
+    if(!porMes[m]) porMes[m]=[];
+    porMes[m].push(g);
+  });
+  var pendHTML = pendientes.length ? pendientes.map(function(g){
+    return '<div class="gasto-row"><div><div class="gasto-cat">'+(CATS[g.categoria]||g.categoria)+'</div><div class="gasto-desc">'+(g.descripcion||'—')+'</div><div style="font-size:11px;color:var(--muted)">'+(g.quien_nombre||'')+'</div></div>'+
+      '<div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:6px">'+
+      '<div class="gasto-amount">'+parseFloat(g.cantidad).toFixed(2)+'€</div>'+
+      (isAdmin?'<button style="padding:4px 10px;border-radius:8px;border:1.5px solid var(--bien);background:rgba(74,222,128,0.1);color:var(--bien);font-family:\'DM Sans\',sans-serif;font-size:11px;font-weight:600;cursor:pointer" data-pagar="'+g.id+'">✓ Pagado</button>':'')+
+      '</div></div>';
+  }).join('') : '<div class="empty">No hay gastos pendientes 🎉</div>';
+  var pagHTML = Object.keys(porMes).length ? Object.entries(porMes).map(function(e){
+    var mes=e[0], gs=e[1], mt=gs.reduce(function(s,g){ return s+parseFloat(g.cantidad||0); },0);
+    return '<div class="mes-header"><span>'+mes+'</span><span class="mes-total">'+mt.toFixed(2)+'€</span></div><div class="card" style="margin-top:0">'+
+      gs.map(function(g){ return '<div class="gasto-row"><div><div class="gasto-cat">'+(CATS[g.categoria]||g.categoria)+'</div><div class="gasto-desc">'+(g.descripcion||'—')+'</div><div style="font-size:11px;color:var(--muted)">'+(g.quien_nombre||'')+'</div></div><div style="text-align:right"><div class="gasto-amount">'+parseFloat(g.cantidad).toFixed(2)+'€</div></div></div>'; }).join('')+'</div>';
+  }).join('') : '<div class="empty">No hay gastos pagados todavía</div>';
+  c.innerHTML = '<div style="padding-top:8px">'+
+    '<div class="card" style="margin-top:12px"><div style="display:flex;justify-content:space-between;align-items:center"><div><div class="card-title" style="margin-bottom:4px">Pendiente de pago</div><div style="font-size:32px;font-weight:700">'+totalPend.toFixed(2)+'€</div></div><div style="font-size:32px">💳</div></div></div>'+
+    '<div style="display:flex;margin:0 16px 12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden">'+
+    '<button style="flex:1;padding:10px;border:none;background:'+(gastoTab==='pendientes'?'var(--accent)':'transparent')+';color:'+(gastoTab==='pendientes'?'white':'var(--muted)')+';font-family:\'DM Sans\',sans-serif;font-size:13px;font-weight:600;cursor:pointer" data-gtab="pendientes">Pendientes ('+pendientes.length+')</button>'+
+    '<button style="flex:1;padding:10px;border:none;background:'+(gastoTab==='historial'?'var(--accent)':'transparent')+';color:'+(gastoTab==='historial'?'white':'var(--muted)')+';font-family:\'DM Sans\',sans-serif;font-size:13px;font-weight:600;cursor:pointer" data-gtab="historial">Historial</button>'+
+    '</div>'+
+    (gastoTab==='pendientes'?'<div class="card" style="margin-top:0">'+pendHTML+'</div>':pagHTML)+
+    '<button class="fab" id="fab-gasto">+</button></div>';
+  document.querySelectorAll('[data-gtab]').forEach(function(b){
+    b.onclick = function(){ gastoTab=b.dataset.gtab; renderGastos(document.getElementById('main-content')); };
+  });
+  document.querySelectorAll('[data-pagar]').forEach(function(b){
+    b.onclick = async function(){
+      await dbUpdate('expenses','id=eq.'+b.dataset.pagar,{estado:'pagado',pagado_at:new Date().toISOString(),pagado_por:profile.nombre});
+      gastos=[]; gastosLoaded=false; renderGastos(document.getElementById('main-content'));
+      showToast('✓ Marcado como pagado');
+    };
+  });
+  var fg = document.getElementById('fab-gasto');
+  if (fg) fg.onclick = function(){ modalOpen='gasto'; modalForm={categoria:'comida',descripcion:'',cantidad:''}; render(); };
+}
+
+// ── COMPRA ──
+var COMPRA_CATS = { comida:'🍔 Comida', limpieza:'🧹 Limpieza', higiene:'🧴 Higiene', farmacia:'💊 Farmacia', otros:'📦 Otros' };
+function renderCompra(c) {
+  if (!shoppingLoaded) {
+    c.innerHTML = '<div class="empty">Cargando...</div>';
+    dbGet('shopping_list','comprado=eq.false&order=created_at.asc').then(function(data){
+      shopping = data || []; shoppingLoaded = true;
+      if (tab==='compra') renderCompra(document.getElementById('main-content'));
+    });
+    return;
+  }
+  var porCat = {};
+  shopping.forEach(function(i){ if(!porCat[i.categoria]) porCat[i.categoria]=[]; porCat[i.categoria].push(i); });
+  c.innerHTML = '<div style="padding-top:12px">'+
+    (!shopping.length?'<div class="empty">Lista vacía 🛒</div>':
+    Object.entries(porCat).map(function(e){
+      var cat=e[0], items=e[1];
+      return '<div class="section-header">'+(COMPRA_CATS[cat]||cat)+'</div><div class="card" style="margin-top:0">'+
+        items.map(function(i){
+          return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">'+
+            '<div><div style="font-size:14px">'+i.nombre+'</div>'+(i.cantidad?'<div style="font-size:11px;color:var(--muted)">'+i.cantidad+'</div>':'')+'</div>'+
+            '<button class="toggle" data-check="'+i.id+'"></button>'+
+            '</div>';
+        }).join('')+'</div>';
+    }).join(''))+
+    '<button class="fab" id="fab-compra">+</button></div>';
+  document.querySelectorAll('[data-check]').forEach(function(b){
+    b.onclick = async function(){
+      var id = b.dataset.check;
+      var item = shopping.find(function(i){ return i.id===id; });
+      await dbUpdate('shopping_list','id=eq.'+id,{comprado:true,comprado_por:profile.nombre,comprado_at:new Date().toISOString()});
+      // ask if add to gastos
+      if (confirm('¿Añadir a gastos pendientes?')) {
+        var importe = prompt('¿Cuánto ha costado? (€)');
+        if (importe && parseFloat(importe)) {
+          await dbInsert('expenses',{categoria:item.categoria==='limpieza'||item.categoria==='higiene'?'hogar':item.categoria, descripcion:item.nombre, cantidad:parseFloat(importe), estado:'pendiente', quien_nombre:profile.nombre, created_by:sbUser.id});
+          gastos=[]; gastosLoaded=false;
+          showToast('✓ Añadido a gastos pendientes');
+        }
+      }
+      shopping=[]; shoppingLoaded=false; renderCompra(document.getElementById('main-content'));
+      showToast('✓ Comprado');
+    };
+  });
+  var fb = document.getElementById('fab-compra');
+  if (fb) fb.onclick = function(){ modalOpen='compra'; modalForm={categoria:'comida',nombre:'',cantidad:''}; render(); };
+}
+
+// ── DOCUMENTOS ──
+function renderDocs(c) {
+  if (!docsLoaded) {
+    c.innerHTML = '<div class="empty">Cargando...</div>';
+    dbGet('documents','order=created_at.desc').then(function(data){
+      docs = data||[]; docsLoaded=true;
+      if (tab==='documentos') renderDocs(document.getElementById('main-content'));
+    });
+    return;
+  }
+  var isAdmin = profile.rol==='admin';
+  c.innerHTML = '<div style="padding-top:12px">'+
+    (isAdmin?'<label style="display:block;margin:0 16px 16px"><div style="padding:14px;background:var(--surface2);border:2px dashed var(--border);border-radius:14px;text-align:center;cursor:pointer;color:var(--muted);font-size:14px" id="upload-label">📎 Subir documento o foto</div><input type="file" accept="image/*,application/pdf" style="display:none" id="file-input"/></label>':'')+
+    (!docs.length?'<div class="empty">No hay documentos todavía</div>':'')+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 16px">'+
+    docs.map(function(doc){ return '<a href="'+doc.url+'" target="_blank" rel="noreferrer" style="text-decoration:none"><div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden">'+(doc.tipo&&doc.tipo.startsWith('image')?'<img src="'+doc.url+'" alt="'+doc.nombre+'" style="width:100%;aspect-ratio:3/4;object-fit:cover"/>':'<div style="width:100%;aspect-ratio:3/4;display:flex;align-items:center;justify-content:center;font-size:40px;background:var(--surface2)">📄</div>')+'<div style="padding:10px"><div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+doc.nombre+'</div><div style="font-size:11px;color:var(--muted);margin-top:2px">'+new Date(doc.created_at).toLocaleDateString('es-ES',{day:'numeric',month:'short',year:'numeric'})+'</div></div></div></a>'; }).join('')+
+    '</div></div>';
+  var fi = document.getElementById('file-input');
+  if (fi) fi.onchange = async function(e){
+    var file = e.target.files[0]; if(!file) return;
+    document.getElementById('upload-label').textContent = 'Subiendo...';
+    // Upload via Supabase storage REST API
+    var path = 'docs/'+Date.now()+'_'+file.name;
+    var r = await fetch(SUPABASE_URL+'/storage/v1/object/documents/'+path, {
+      method:'POST', headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+sbToken,'Content-Type':file.type},
+      body: file
+    });
+    if (r.ok) {
+      var publicUrl = SUPABASE_URL+'/storage/v1/object/public/documents/'+path;
+      await dbInsert('documents', {nombre:file.name,tipo:file.type,url:publicUrl,uploaded_by:sbUser.id});
+      docs=[]; docsLoaded=false;
+    }
+    renderDocs(document.getElementById('main-content'));
+  };
+}
+
+// ── MODALS ──
+function modalHTML() {
+  if (modalOpen==='gasto') return '<div class="modal-overlay" id="modal-overlay"><div class="modal"><div class="modal-title">Nuevo gasto</div><div class="modal-field"><div class="modal-label">Categoría</div><select class="select-field" id="gcat">'+Object.entries(CATS).map(function(e){ return '<option value="'+e[0]+'">'+e[1]+'</option>'; }).join('')+'</select></div><div class="modal-field"><div class="modal-label">Cantidad (€)</div><input class="input-field" id="gcant" type="number" step="0.01" min="0" placeholder="0.00" style="padding:12px 14px;font-size:14px"/></div><div class="modal-field"><div class="modal-label">Descripción</div><input class="input-field" id="gdesc" placeholder="Opcional" style="padding:12px 14px;font-size:14px"/></div><div class="modal-btns"><button class="btn-cancel" id="mcancel">Cancelar</button><button class="btn-save" id="msave">Guardar</button></div></div></div>';
+  if (modalOpen==='doctor') return '<div class="modal-overlay" id="modal-overlay"><div class="modal"><div class="modal-title">'+(modalForm.id?'Editar médico':'Nuevo médico')+'</div>'+['nombre','especialidad','telefono','notas'].map(function(f){ return '<div class="modal-field"><div class="modal-label">'+f.charAt(0).toUpperCase()+f.slice(1)+'</div><input class="input-field" id="df_'+f+'" value="'+(modalForm[f]||'')+'" style="padding:12px 14px;font-size:14px"/></div>'; }).join('')+'<div class="modal-btns"><button class="btn-cancel" id="mcancel">Cancelar</button><button class="btn-save" id="msave">Guardar</button></div></div></div>';
+  if (modalOpen==='cita') return '<div class="modal-overlay" id="modal-overlay"><div class="modal"><div class="modal-title">Nueva cita</div><div class="modal-field"><div class="modal-label">Médico</div><select class="select-field" id="cita_doc"><option value="">Selecciona médico</option>'+doctors.map(function(d){ return '<option value="'+d.id+'">'+d.nombre+'</option>'; }).join('')+'</select></div><div class="modal-field"><div class="modal-label">Fecha y hora</div><input class="input-field" id="cita_fecha" type="datetime-local" style="padding:12px 14px;font-size:14px"/></div><div class="modal-field"><div class="modal-label">Motivo</div><input class="input-field" id="cita_motivo" placeholder="Revisión, análisis..." style="padding:12px 14px;font-size:14px"/></div><div class="modal-btns"><button class="btn-cancel" id="mcancel">Cancelar</button><button class="btn-save" id="msave">Guardar</button></div></div></div>';
+  if (modalOpen==='compra') return '<div class="modal-overlay" id="modal-overlay"><div class="modal"><div class="modal-title">Añadir a la lista</div><div class="modal-field"><div class="modal-label">Nombre</div><input class="input-field" id="comp_nombre" placeholder="Leche, jabón..." style="padding:12px 14px;font-size:14px"/></div><div class="modal-field"><div class="modal-label">Categoría</div><select class="select-field" id="comp_cat">'+Object.entries(COMPRA_CATS).map(function(e){ return '<option value="'+e[0]+'">'+e[1]+'</option>'; }).join('')+'</select></div><div class="modal-field"><div class="modal-label">Cantidad (opcional)</div><input class="input-field" id="comp_cant" placeholder="2 litros, 1 bote..." style="padding:12px 14px;font-size:14px"/></div><div class="modal-btns"><button class="btn-cancel" id="mcancel">Cancelar</button><button class="btn-save" id="msave">Añadir</button></div></div></div>';
+  return '';
+}
+
+function bindModal() {
+  var overlay = document.getElementById('modal-overlay');
+  if (overlay) overlay.onclick = function(e){ if(e.target===overlay){ modalOpen=null; render(); } };
+  var cancel = document.getElementById('mcancel');
+  if (cancel) cancel.onclick = function(){ modalOpen=null; render(); };
+  var save = document.getElementById('msave');
+  if (!save) return;
+  if (modalOpen==='gasto') {
+    save.onclick = async function(){
+      var cant = parseFloat(document.getElementById('gcant').value);
+      if (!cant) return;
+      var g = { categoria: document.getElementById('gcat').value, cantidad: cant, descripcion: document.getElementById('gdesc').value, created_by: sbUser.id, quien_nombre: profile.nombre };
+      await dbInsert('expenses', g);
+      gastos=[]; gastosLoaded=false; modalOpen=null; render(); showToast('✓ Gasto añadido');
+    };
+  } else if (modalOpen==='doctor') {
+    save.onclick = async function(){
+      var form={};
+      ['nombre','especialidad','telefono','notas'].forEach(function(f){ form[f]=document.getElementById('df_'+f).value; });
+      if (modalForm.id) await dbUpdate('doctors','id=eq.'+modalForm.id,form);
+      else await dbInsert('doctors',form);
+      doctors=[]; appts=[]; doctorsLoaded=false; modalOpen=null; render(); showToast('✓ Guardado');
+    };
+  } else if (modalOpen==='cita') {
+    save.onclick = async function(){
+      await dbInsert('appointments',{ doctor_id:document.getElementById('cita_doc').value, fecha:document.getElementById('cita_fecha').value, motivo:document.getElementById('cita_motivo').value, created_by:sbUser.id });
+      doctors=[]; appts=[]; doctorsLoaded=false; modalOpen=null; render(); showToast('✓ Cita añadida');
+    };
+  } else if (modalOpen==='compra') {
+    save.onclick = async function(){
+      var nombre = document.getElementById('comp_nombre').value.trim();
+      if (!nombre) return;
+      await dbInsert('shopping_list',{nombre:nombre,categoria:document.getElementById('comp_cat').value,cantidad:document.getElementById('comp_cant').value,created_by:sbUser.id});
+      shopping=[]; shoppingLoaded=false; modalOpen=null; render(); showToast('✓ Añadido a la lista');
+    };
+  }
+}
+
+// ── INIT ──
+async function init() {
+  if (sbLoad() && sbUser) {
+    try {
+      profile = await sbGetProfile();
+      if (profile) {
+        user = sbUser;
+        await loadHoyData();
+      } else {
+        sbClear();
+      }
+    } catch(e) { sbClear(); }
+  }
+  render();
+}
+
+init();
+</script>
+</body>
+</html>
