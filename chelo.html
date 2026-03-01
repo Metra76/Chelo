@@ -111,6 +111,19 @@
   .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 12px 20px; font-size: 14px; font-weight: 500; z-index: 50; animation: fadeInOut 2.5s forwards; white-space: nowrap; }
   @keyframes fadeInOut { 0%{opacity:0;transform:translateX(-50%) translateY(-10px)} 15%{opacity:1;transform:translateX(-50%) translateY(0)} 75%{opacity:1} 100%{opacity:0} }
   .empty { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 14px; }
+  .pendiente-badge { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; background: rgba(251,191,36,0.15); color: var(--regular); }
+  .pagado-badge { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; background: rgba(74,222,128,0.15); color: var(--success); }
+  .pagar-btn { padding: 6px 14px; border-radius: 8px; border: none; background: var(--accent); color: white; font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+  .shop-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .shop-row:last-child { border-bottom: none; }
+  .shop-check { width: 24px; height: 24px; border-radius: 6px; border: 2px solid var(--border); background: transparent; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.2s; font-size: 14px; }
+  .shop-check.done { background: var(--success); border-color: var(--success); }
+  .shop-name { flex: 1; font-size: 14px; }
+  .shop-name.done { text-decoration: line-through; color: var(--muted); }
+  .shop-cat-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .gastos-tabs { display: flex; margin: 12px 16px 0; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); }
+  .gastos-tab { flex: 1; padding: 10px; text-align: center; font-size: 13px; font-weight: 500; cursor: pointer; background: transparent; border: none; color: var(--muted); font-family: 'DM Sans', sans-serif; transition: all 0.2s; }
+  .gastos-tab.active { background: var(--accent); color: white; }
 </style>
 </head>
 <body>
@@ -131,6 +144,7 @@ var IC = {
   medico: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2a4 4 0 0 1 4 4v2H8V6a4 4 0 0 1 4-4z"/><path d="M8 8H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2h-3"/><path d="M12 13v4M10 15h4"/></svg>',
   gastos: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M12 6v2M12 16v2M8.5 9.5a3.5 1.5 0 0 1 7 0c0 1.5-1.5 2-3.5 2.5s-3.5 1-3.5 2.5a3.5 1.5 0 0 0 7 0"/></svg>',
   docs: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
+  compra: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>',
   chev: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px"><path d="M6 9l6 6 6-6"/></svg>',
 };
 
@@ -216,8 +230,9 @@ async function dbUpdate(table, query, body) {
 var user = null, profile = null, tab = 'hoy', histOpen = null, gastoFiltro = 'todos', modalOpen = null, modalForm = {};
 var logData = null, medsData = [], medLogs = {}, medQuien = {};
 var comidas = {}, comidaQuien = {};
-var histLogs = [], doctors = [], appts = [], gastos = [], docs = [];
-var histLoaded = false, doctorsLoaded = false, gastosLoaded = false, docsLoaded = false;
+var histLogs = [], doctors = [], appts = [], gastos = [], docs = [], shopping = [];
+var histLoaded = false, doctorsLoaded = false, gastosLoaded = false, docsLoaded = false, shoppingLoaded = false;
+var gastoTab = 'pendientes';
 
 function today() { return new Date().toISOString().split('T')[0]; }
 function nowTime() { var n=new Date(); return ('0'+n.getHours()).slice(-2)+':'+('0'+n.getMinutes()).slice(-2)+'h'; }
@@ -242,13 +257,14 @@ function render() {
     {id:'hoy',label:'Hoy',icon:IC.hoy},
     {id:'historial',label:'Historial',icon:IC.hist},
     {id:'medico',label:'Médico',icon:IC.medico},
+    {id:'compra',label:'Compra',icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>'},
   ];
   if (isAdmin || isHermano) {
     tabs.push({id:'gastos',label:'Gastos',icon:IC.gastos});
     tabs.push({id:'documentos',label:'Docs',icon:IC.docs});
   }
   var av = profile && profile.nombre ? profile.nombre[0].toUpperCase() : '?';
-  var titles = {hoy:'Registro de hoy',historial:'Historial',medico:'Médico',gastos:'Gastos',documentos:'Documentos'};
+  var titles = {hoy:'Registro de hoy',historial:'Historial',medico:'Médico',gastos:'Gastos',documentos:'Documentos',compra:'Lista de la compra'};
   root.innerHTML =
     '<div class="topbar"><div><div class="topbar-title">Chelo</div><div class="topbar-sub">'+titles[tab]+'</div></div><div class="avatar" id="logout-btn">'+av+'</div></div>' +
     '<div class="scroll-area" id="main-content"><div class="empty">Cargando...</div></div>' +
@@ -270,6 +286,7 @@ function renderTab() {
   else if (tab==='medico') renderMedico(c);
   else if (tab==='gastos') renderGastos(c);
   else if (tab==='documentos') renderDocs(c);
+  else if (tab==='compra') renderCompra(c);
 }
 
 // ── LOGIN ──
@@ -469,36 +486,103 @@ function renderMedico(c) {
 function renderGastos(c) {
   if (!gastosLoaded) {
     c.innerHTML = '<div class="empty">Cargando...</div>';
-    dbGet('expenses','order=fecha.desc&order=created_at.desc&limit=300').then(function(data){
-      // fetch profile names separately
+    dbGet('expenses','order=created_at.desc&limit=300').then(function(data){
       gastos = data || []; gastosLoaded = true;
       if (tab==='gastos') renderGastos(document.getElementById('main-content'));
     });
     return;
   }
-  var filtered = gastoFiltro==='todos' ? gastos : gastos.filter(function(g){ return g.categoria===gastoFiltro; });
-  var total = gastos.reduce(function(s,g){ return s+parseFloat(g.cantidad||0); }, 0);
-  var porCat = gastos.reduce(function(acc,g){ acc[g.categoria]=(acc[g.categoria]||0)+parseFloat(g.cantidad||0); return acc; }, {});
+  var isAdmin = profile.rol==='admin';
+  var pendientes = gastos.filter(function(g){ return g.estado==='pendiente'||!g.estado; });
+  var pagados = gastos.filter(function(g){ return g.estado==='pagado'; });
+  var totalPend = pendientes.reduce(function(s,g){ return s+parseFloat(g.cantidad||0); },0);
   var porMes = {};
-  filtered.forEach(function(g){ var m=fmtMes(g.fecha); if(!porMes[m]) porMes[m]=[]; porMes[m].push(g); });
-
+  pagados.forEach(function(g){
+    var d = g.pagado_at||g.created_at||today()+'T00:00:00';
+    var m = fmtMes(d.split('T')[0]);
+    if(!porMes[m]) porMes[m]=[];
+    porMes[m].push(g);
+  });
+  var pendHTML = pendientes.length ? pendientes.map(function(g){
+    return '<div class="gasto-row"><div><div class="gasto-cat">'+(CATS[g.categoria]||g.categoria)+'</div><div class="gasto-desc">'+(g.descripcion||'—')+'</div><div style="font-size:11px;color:var(--muted)">'+(g.quien_nombre||'')+'</div></div>'+
+      '<div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:6px">'+
+      '<div class="gasto-amount">'+parseFloat(g.cantidad).toFixed(2)+'€</div>'+
+      (isAdmin?'<button style="padding:4px 10px;border-radius:8px;border:1.5px solid var(--bien);background:rgba(74,222,128,0.1);color:var(--bien);font-family:\'DM Sans\',sans-serif;font-size:11px;font-weight:600;cursor:pointer" data-pagar="'+g.id+'">✓ Pagado</button>':'')+
+      '</div></div>';
+  }).join('') : '<div class="empty">No hay gastos pendientes 🎉</div>';
+  var pagHTML = Object.keys(porMes).length ? Object.entries(porMes).map(function(e){
+    var mes=e[0], gs=e[1], mt=gs.reduce(function(s,g){ return s+parseFloat(g.cantidad||0); },0);
+    return '<div class="mes-header"><span>'+mes+'</span><span class="mes-total">'+mt.toFixed(2)+'€</span></div><div class="card" style="margin-top:0">'+
+      gs.map(function(g){ return '<div class="gasto-row"><div><div class="gasto-cat">'+(CATS[g.categoria]||g.categoria)+'</div><div class="gasto-desc">'+(g.descripcion||'—')+'</div><div style="font-size:11px;color:var(--muted)">'+(g.quien_nombre||'')+'</div></div><div style="text-align:right"><div class="gasto-amount">'+parseFloat(g.cantidad).toFixed(2)+'€</div></div></div>'; }).join('')+'</div>';
+  }).join('') : '<div class="empty">No hay gastos pagados todavía</div>';
   c.innerHTML = '<div style="padding-top:8px">'+
-    '<div class="card" style="margin-top:12px"><div class="card-title">Total acumulado</div><div style="font-size:32px;font-weight:700;margin-bottom:12px">'+total.toFixed(2)+'€</div><div class="resumen-grid">'+
-    Object.entries(porCat).map(function(e){ return '<div class="resumen-item"><div class="resumen-label">'+(CATS[e[0]]||e[0])+'</div><div class="resumen-val">'+e[1].toFixed(2)+'€</div></div>'; }).join('')+'</div></div>'+
-    '<div class="filter-tabs">'+[['todos','Todos'],['comida','🍔'],['farmacia','💊'],['transporte','🚗'],['hogar','🏠'],['otros','📦']].map(function(f){ return '<button class="filter-tab '+(gastoFiltro===f[0]?'active':'')+'" data-filtro="'+f[0]+'">'+f[1]+'</button>'; }).join('')+'</div>'+
-    Object.entries(porMes).map(function(e){
-      var mes=e[0], gs=e[1], mt=gs.reduce(function(s,g){ return s+parseFloat(g.cantidad||0); },0);
-      return '<div class="mes-header"><span>'+mes+'</span><span class="mes-total">'+mt.toFixed(2)+'€</span></div><div class="card" style="margin-top:0">'+
-        gs.map(function(g){ return '<div class="gasto-row"><div><div class="gasto-cat">'+(CATS[g.categoria]||g.categoria)+'</div><div class="gasto-desc">'+(g.descripcion||'—')+'</div><div style="font-size:11px;color:var(--muted)">'+(g.quien_nombre||'')+'</div></div><div style="text-align:right"><div class="gasto-amount">'+parseFloat(g.cantidad).toFixed(2)+'€</div><div class="gasto-date">'+fmtFechaCorta(g.fecha)+'</div></div></div>'; }).join('')+'</div>';
-    }).join('')+
-    (!gastos.length?'<div class="empty">No hay gastos todavía</div>':'')+
+    '<div class="card" style="margin-top:12px"><div style="display:flex;justify-content:space-between;align-items:center"><div><div class="card-title" style="margin-bottom:4px">Pendiente de pago</div><div style="font-size:32px;font-weight:700">'+totalPend.toFixed(2)+'€</div></div><div style="font-size:32px">💳</div></div></div>'+
+    '<div style="display:flex;margin:0 16px 12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden">'+
+    '<button style="flex:1;padding:10px;border:none;background:'+(gastoTab==='pendientes'?'var(--accent)':'transparent')+';color:'+(gastoTab==='pendientes'?'white':'var(--muted)')+';font-family:\'DM Sans\',sans-serif;font-size:13px;font-weight:600;cursor:pointer" data-gtab="pendientes">Pendientes ('+pendientes.length+')</button>'+
+    '<button style="flex:1;padding:10px;border:none;background:'+(gastoTab==='historial'?'var(--accent)':'transparent')+';color:'+(gastoTab==='historial'?'white':'var(--muted)')+';font-family:\'DM Sans\',sans-serif;font-size:13px;font-weight:600;cursor:pointer" data-gtab="historial">Historial</button>'+
+    '</div>'+
+    (gastoTab==='pendientes'?'<div class="card" style="margin-top:0">'+pendHTML+'</div>':pagHTML)+
     '<button class="fab" id="fab-gasto">+</button></div>';
-
-  document.querySelectorAll('[data-filtro]').forEach(function(b){
-    b.onclick = function(){ gastoFiltro=b.dataset.filtro; renderGastos(document.getElementById('main-content')); };
+  document.querySelectorAll('[data-gtab]').forEach(function(b){
+    b.onclick = function(){ gastoTab=b.dataset.gtab; renderGastos(document.getElementById('main-content')); };
+  });
+  document.querySelectorAll('[data-pagar]').forEach(function(b){
+    b.onclick = async function(){
+      await dbUpdate('expenses','id=eq.'+b.dataset.pagar,{estado:'pagado',pagado_at:new Date().toISOString(),pagado_por:profile.nombre});
+      gastos=[]; gastosLoaded=false; renderGastos(document.getElementById('main-content'));
+      showToast('✓ Marcado como pagado');
+    };
   });
   var fg = document.getElementById('fab-gasto');
   if (fg) fg.onclick = function(){ modalOpen='gasto'; modalForm={categoria:'comida',descripcion:'',cantidad:''}; render(); };
+}
+
+// ── COMPRA ──
+var COMPRA_CATS = { comida:'🍔 Comida', limpieza:'🧹 Limpieza', higiene:'🧴 Higiene', farmacia:'💊 Farmacia', otros:'📦 Otros' };
+function renderCompra(c) {
+  if (!shoppingLoaded) {
+    c.innerHTML = '<div class="empty">Cargando...</div>';
+    dbGet('shopping_list','comprado=eq.false&order=created_at.asc').then(function(data){
+      shopping = data || []; shoppingLoaded = true;
+      if (tab==='compra') renderCompra(document.getElementById('main-content'));
+    });
+    return;
+  }
+  var porCat = {};
+  shopping.forEach(function(i){ if(!porCat[i.categoria]) porCat[i.categoria]=[]; porCat[i.categoria].push(i); });
+  c.innerHTML = '<div style="padding-top:12px">'+
+    (!shopping.length?'<div class="empty">Lista vacía 🛒</div>':
+    Object.entries(porCat).map(function(e){
+      var cat=e[0], items=e[1];
+      return '<div class="section-header">'+(COMPRA_CATS[cat]||cat)+'</div><div class="card" style="margin-top:0">'+
+        items.map(function(i){
+          return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">'+
+            '<div><div style="font-size:14px">'+i.nombre+'</div>'+(i.cantidad?'<div style="font-size:11px;color:var(--muted)">'+i.cantidad+'</div>':'')+'</div>'+
+            '<button class="toggle" data-check="'+i.id+'"></button>'+
+            '</div>';
+        }).join('')+'</div>';
+    }).join(''))+
+    '<button class="fab" id="fab-compra">+</button></div>';
+  document.querySelectorAll('[data-check]').forEach(function(b){
+    b.onclick = async function(){
+      var id = b.dataset.check;
+      var item = shopping.find(function(i){ return i.id===id; });
+      await dbUpdate('shopping_list','id=eq.'+id,{comprado:true,comprado_por:profile.nombre,comprado_at:new Date().toISOString()});
+      // ask if add to gastos
+      if (confirm('¿Añadir a gastos pendientes?')) {
+        var importe = prompt('¿Cuánto ha costado? (€)');
+        if (importe && parseFloat(importe)) {
+          await dbInsert('expenses',{categoria:item.categoria==='limpieza'||item.categoria==='higiene'?'hogar':item.categoria, descripcion:item.nombre, cantidad:parseFloat(importe), estado:'pendiente', quien_nombre:profile.nombre, created_by:sbUser.id});
+          gastos=[]; gastosLoaded=false;
+          showToast('✓ Añadido a gastos pendientes');
+        }
+      }
+      shopping=[]; shoppingLoaded=false; renderCompra(document.getElementById('main-content'));
+      showToast('✓ Comprado');
+    };
+  });
+  var fb = document.getElementById('fab-compra');
+  if (fb) fb.onclick = function(){ modalOpen='compra'; modalForm={categoria:'comida',nombre:'',cantidad:''}; render(); };
 }
 
 // ── DOCUMENTOS ──
@@ -542,6 +626,7 @@ function modalHTML() {
   if (modalOpen==='gasto') return '<div class="modal-overlay" id="modal-overlay"><div class="modal"><div class="modal-title">Nuevo gasto</div><div class="modal-field"><div class="modal-label">Categoría</div><select class="select-field" id="gcat">'+Object.entries(CATS).map(function(e){ return '<option value="'+e[0]+'">'+e[1]+'</option>'; }).join('')+'</select></div><div class="modal-field"><div class="modal-label">Cantidad (€)</div><input class="input-field" id="gcant" type="number" step="0.01" min="0" placeholder="0.00" style="padding:12px 14px;font-size:14px"/></div><div class="modal-field"><div class="modal-label">Descripción</div><input class="input-field" id="gdesc" placeholder="Opcional" style="padding:12px 14px;font-size:14px"/></div><div class="modal-btns"><button class="btn-cancel" id="mcancel">Cancelar</button><button class="btn-save" id="msave">Guardar</button></div></div></div>';
   if (modalOpen==='doctor') return '<div class="modal-overlay" id="modal-overlay"><div class="modal"><div class="modal-title">'+(modalForm.id?'Editar médico':'Nuevo médico')+'</div>'+['nombre','especialidad','telefono','notas'].map(function(f){ return '<div class="modal-field"><div class="modal-label">'+f.charAt(0).toUpperCase()+f.slice(1)+'</div><input class="input-field" id="df_'+f+'" value="'+(modalForm[f]||'')+'" style="padding:12px 14px;font-size:14px"/></div>'; }).join('')+'<div class="modal-btns"><button class="btn-cancel" id="mcancel">Cancelar</button><button class="btn-save" id="msave">Guardar</button></div></div></div>';
   if (modalOpen==='cita') return '<div class="modal-overlay" id="modal-overlay"><div class="modal"><div class="modal-title">Nueva cita</div><div class="modal-field"><div class="modal-label">Médico</div><select class="select-field" id="cita_doc"><option value="">Selecciona médico</option>'+doctors.map(function(d){ return '<option value="'+d.id+'">'+d.nombre+'</option>'; }).join('')+'</select></div><div class="modal-field"><div class="modal-label">Fecha y hora</div><input class="input-field" id="cita_fecha" type="datetime-local" style="padding:12px 14px;font-size:14px"/></div><div class="modal-field"><div class="modal-label">Motivo</div><input class="input-field" id="cita_motivo" placeholder="Revisión, análisis..." style="padding:12px 14px;font-size:14px"/></div><div class="modal-btns"><button class="btn-cancel" id="mcancel">Cancelar</button><button class="btn-save" id="msave">Guardar</button></div></div></div>';
+  if (modalOpen==='compra') return '<div class="modal-overlay" id="modal-overlay"><div class="modal"><div class="modal-title">Añadir a la lista</div><div class="modal-field"><div class="modal-label">Nombre</div><input class="input-field" id="comp_nombre" placeholder="Leche, jabón..." style="padding:12px 14px;font-size:14px"/></div><div class="modal-field"><div class="modal-label">Categoría</div><select class="select-field" id="comp_cat">'+Object.entries(COMPRA_CATS).map(function(e){ return '<option value="'+e[0]+'">'+e[1]+'</option>'; }).join('')+'</select></div><div class="modal-field"><div class="modal-label">Cantidad (opcional)</div><input class="input-field" id="comp_cant" placeholder="2 litros, 1 bote..." style="padding:12px 14px;font-size:14px"/></div><div class="modal-btns"><button class="btn-cancel" id="mcancel">Cancelar</button><button class="btn-save" id="msave">Añadir</button></div></div></div>';
   return '';
 }
 
@@ -572,6 +657,13 @@ function bindModal() {
     save.onclick = async function(){
       await dbInsert('appointments',{ doctor_id:document.getElementById('cita_doc').value, fecha:document.getElementById('cita_fecha').value, motivo:document.getElementById('cita_motivo').value, created_by:sbUser.id });
       doctors=[]; appts=[]; doctorsLoaded=false; modalOpen=null; render(); showToast('✓ Cita añadida');
+    };
+  } else if (modalOpen==='compra') {
+    save.onclick = async function(){
+      var nombre = document.getElementById('comp_nombre').value.trim();
+      if (!nombre) return;
+      await dbInsert('shopping_list',{nombre:nombre,categoria:document.getElementById('comp_cat').value,cantidad:document.getElementById('comp_cant').value,created_by:sbUser.id});
+      shopping=[]; shoppingLoaded=false; modalOpen=null; render(); showToast('✓ Añadido a la lista');
     };
   }
 }
